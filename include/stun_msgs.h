@@ -33,27 +33,21 @@ typedef enum {
 } STUN_ATTR_TYPE;
 
 typedef struct {
-	STUN_ATTR_TYPE attr_type;
-	short attr_len;
-	unsigned char *attr_val;
-} STUN_ATTR;
-
-typedef struct {
 	STUN_MSG_TYPE type;
 	unsigned char transaction_id[12];
-	STUN_ATTR attr[11];
-	int attr_count;
+	struct {
+		STUN_ATTR_TYPE type;
+		short len;
+		unsigned char *val;
+		int set;
+	} attr[11];
 } STUN_PACKET;
 
 int create_stun_packet(STUN_PACKET*, STUN_MSG_TYPE, unsigned char[12]);
 
 int delete_stun_packet(STUN_PACKET*);
 
-int create_stun_attr(STUN_ATTR*, STUN_ATTR_TYPE, short, unsigned char*);
-
-int delete_stun_attr(STUN_ATTR*);
-
-int append_attr(STUN_PACKET*, STUN_ATTR*);
+int set_attr(STUN_PACKET*, STUN_ATTR_TYPE, short, unsigned char*);
 
 int packet_len(STUN_PACKET*);
 

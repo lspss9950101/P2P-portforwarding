@@ -8,8 +8,11 @@ CFLAGS	=	-I$(LIB_DIR)
 SRC		=	$(wildcard $(SRC_DIR)/*.c)
 OBJ		=	$(SRC:%.c=%.o)
 
-$(TARGET): $(OBJ)
-	$(CC) -o main $@.c $(CFLAGS) $^
+$(TARGET): $(OBJ) $(TARGET).o
+	$(CC) -o $@ $@.o $(CFLAGS) $(OBJ)
+
+$(TARGET).o: $(TARGET).c
+	$(CC) -c -o $@ $< $(CFLAGS)
 
 $(SRC_DIR)/%.o: $(SRC_DIR)/%.c
 	$(CC) -c -o $@ $< $(CFLAGS)
