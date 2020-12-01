@@ -3,6 +3,12 @@
 
 #define MAGIC_COOKIE 0x2112A442
 
+#include <netinet/in.h>
+#include <stdlib.h>
+#include <string>
+#include <string.h>
+#include <vector>
+
 enum class STUN_MSG_TYPE {
     STUN_MSG_TYPE_BINDING_REQ=0x0001,
 	STUN_MSG_TYPE_BINDING_RES=0x0101,
@@ -11,9 +17,9 @@ enum class STUN_MSG_TYPE {
 	STUN_MSG_TYPE_SHARED_SECRET_RES=0x0102,
 	STUN_MSG_TYPE_SHARED_SECRET_ERR=0x0112,
     SIZE=6
-}
+};
 
-enum class STUN_MSG_TYPE {
+enum class STUN_ATTR_TYPE {
     STUN_ATTR_TYPE_NULL=0x0000,
 	STUN_ATTR_TYPE_MAPPED_ADDR=0x0001,
 	STUN_ATTR_TYPE_RESPONSE_ADDR=0x0002,
@@ -26,33 +32,50 @@ enum class STUN_MSG_TYPE {
 	STUN_ATTR_TYPE_ERROR_CODE=0x0009,
 	STUN_ATTR_TYPE_UNKNOWN=0x000A,
 	STUN_ATTR_TYPE_REFLECTED_FROM=0x000B,
-    SIZE=11
+    STUN_ATTR_TYPE_REALM=0x0014,
+    STUN_ATTR_TYPE_NONCE=0x0015,
+    STUN_ATTR_TYPE_XOR_MAPPED_ADDRESS=0x0020,
+    SIZE=14
 };
+
+typedef std::vector<unsigned char> uvector;
 
 class StunMsg {
     private:
         STUN_MSG_TYPE type;
         unsigned char transaction_id[12];
         struct STUN_ATTR{
-            STUN_ATTR_TYPE type;
-            short len;
-            unsigned char *val;
+            uvector val;
             bool set;
-        } attr[(int)STUN_ATTR_TYPE::SIZE];
+        };
+        
+        STUN_ATTR attr[(int)STUN_ATTR_TYPE::SIZE];
 
         short attrSize();
+
+        static short attrTypeToIndex(STUN_ATTR_TYPE);
+        
+        static STUN_ATTR_TYPE indexToAttrType(short);
     public:
         StunMsg(STUN_MSG_TYPE, unsigned char*);
+
+        StunMsg(uvector&);
         
         ~StunMsg();
 
+        void parseBuffer(uvector&);
+
+        STUN_MSG_TYPE getType();
+
         short size();
 
-        void setAttr(STUN_ATTR_TYPE, unsigned char *, short);
+        void setAttr(STUN_ATTR_TYPE, uvector&);
 
         void unsetAttr(STUN_ATTR_TYPE);
 
-        std::string toString();
-}
+        uvector getAttr(STUN_ATTR_TYPE);
+
+        uvector toPacket();
+};
 
 #endif
