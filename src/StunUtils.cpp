@@ -53,7 +53,7 @@ int StunUtils::sendStunPacket(std::string stun_server_ip, short stun_server_port
 		return 0x0004;
 	}
 
-	uvector packet = msg.toPacket();
+	uvector packet = msg.toPacket(false, false);
     unsigned char upacket[packet.size()];
     std::copy(packet.begin(), packet.end(), upacket);
 	
@@ -82,8 +82,8 @@ int StunUtils::sendStunPacket(std::string stun_server_ip, short stun_server_port
     return 0x0000;
 }
 
-void StunUtils::dumpPacket(StunMsg& msg) {
-    uvector buf = msg.toPacket();
+void StunUtils::dumpPacket(StunMsg& msg, bool msg_integrity) {
+    uvector buf = msg.toPacket(msg_integrity, false);
     int size = msg.size();
     short cnt = 0;
     for(int i = 0; i < size; i++) {
@@ -106,13 +106,14 @@ void StunUtils::dumpBuffer(uvector &buf, short size) {
 
 std::string StunUtils::translateXORAddress(uvector &buf) {
     std::stringstream ss;
-    ss << (buf[4]^0x21) << '.' << (buf[5]^0x12) << '.' << (buf[6]^0xA4) << '.' << (buf[7]^0x42) << ':' << (ntohs(*(short *)&buf[2])^0x2112);
+    ss << (buf[3]^0x21) << '.' << (buf[2]^0x12) << '.' << (buf[1]^0xA4) << '.' << (buf[0]^0x42) << ':' << ((*(short *)&buf[5])^0x2112);
     return ss.str();
 }
 
-int StunUtils::detectNAT(std::string stun_server_host, short stun_server_port, short local_port) {
-    std::string stun_server_ip;
-	StunUtils::getAddrFromHost(stun_server_host, stun_server_ip);
+int StunUtils::detectNAT(std::string stun_server1_host, short stun_server1_port, std::string stun_server2_host, short stun_server2_port, short local_port) {
+    std::string stun_server1_ip, stun_server2_ip;
+	StunUtils::getAddrFromHost(stun_server1_host, stun_server1_ip);
+	StunUtils::getAddrFromHost(stun_server2_host, stun_server2_ip);
 
 	unsigned char transaction_id[12];
 	*(int *)(&transaction_id[0]) = 0x63c7117e;
@@ -120,13 +121,14 @@ int StunUtils::detectNAT(std::string stun_server_host, short stun_server_port, s
 	*(int *)(&transaction_id[8]) = 0x5ded3221;
 
     uvector change_req_flags = {0x00, 0x00, 0x00, 0x00};
+    uvector finger_print = {0x53, 0x54, 0x55, 0x4e};
 
 	StunMsg msg(STUN_MSG_TYPE::STUN_MSG_TYPE_BINDING_REQ, transaction_id);
     msg.setAttr(STUN_ATTR_TYPE::STUN_ATTR_TYPE_CHANGE_REQ, change_req_flags);
 
     // Test 1
     uvector buf;
-	if(StunUtils::sendStunPacket(stun_server_ip, stun_server_port, local_port, msg, buf) == 0x0010) {
+	if(StunUtils::sendStunPacket(stun_server1_ip, stun_server1_port, local_port, msg, buf) == 0x0010) {
         // UDP blocked
         return 0x0001;
     }
@@ -136,6 +138,7 @@ int StunUtils::detectNAT(std::string stun_server_host, short stun_server_port, s
 	if(response.getType() == STUN_MSG_TYPE::STUN_MSG_TYPE_BINDING_RES) {
 		uvector xor_ip = response.getAttr(STUN_ATTR_TYPE::STUN_ATTR_TYPE_XOR_MAPPED_ADDRESS);
 		global_ip_same_ip_port = StunUtils::translateXORAddress(xor_ip);
+        std::cout << "Global IP Port: " << global_ip_same_ip_port << std::endl;
 	}
 
     // TODO: check link ip and global ip
@@ -144,9 +147,8 @@ int StunUtils::detectNAT(std::string stun_server_host, short stun_server_port, s
     
     change_req_flags = {0xFF, 0xFF, 0xFF, 0xFF};
     msg.setAttr(STUN_ATTR_TYPE::STUN_ATTR_TYPE_CHANGE_REQ, change_req_flags);
-    if(StunUtils::sendStunPacket(stun_server_ip, stun_server_port, local_port, msg, buf) == 0x0000) {
+    if(StunUtils::sendStunPacket(stun_server2_ip, stun_server2_port, local_port, msg, buf) == 0x0000) {
         response.parseBuffer(buf);
-        StunUtils::dumpPacket(response);
         // Full Cone NAT
         return 0x0002;
     }
@@ -163,7 +165,7 @@ int StunUtils::detectNAT(std::string stun_server_host, short stun_server_port, s
     // Test 3
     change_req_flags[0] = 0x02;
     msg.setAttr(STUN_ATTR_TYPE::STUN_ATTR_TYPE_CHANGE_REQ, change_req_flags);
-    if(StunUtils::sendStunPacket(stun_server_ip, stun_server_port, local_port, msg, buf) == 0x0000) {
+    if(StunUtils::sendStunPacket(stun_server1_ip, stun_server1_port, local_port, msg, buf) == 0x0000) {
         // Restricted NAT
         return 0x0008;
     }

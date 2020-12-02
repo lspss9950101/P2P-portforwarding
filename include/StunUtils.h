@@ -9,6 +9,7 @@
 #include <unistd.h>
 #include <netdb.h>
 
+#include <Type.h>
 #include <iostream>
 #include <algorithm>
 #include <sstream>
@@ -22,13 +23,13 @@ namespace StunUtils {
 
     int sendStunPacket(std::string, short, short, StunMsg&, uvector&);
 
-    void dumpPacket(StunMsg&);
+    void dumpPacket(StunMsg&, bool);
 
     void dumpBuffer(uvector&, short);
 
     std::string translateXORAddress(uvector&);
 
-    int detectNAT(std::string, short, short);
+    int detectNAT(std::string, short, std::string, short, short);
 
     std::string translateNATType(int);
 };

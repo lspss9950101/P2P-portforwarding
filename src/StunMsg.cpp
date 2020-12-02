@@ -28,7 +28,9 @@ void StunMsg::parseBuffer(uvector &buf) {
         short attr_len = ntohs(*(short *)&buf[idx+2]);
 
         int index = StunMsg::attrTypeToIndex((STUN_ATTR_TYPE)attr_type);
-        this->attr[index].val = uvector(&buf[idx + 4], &buf[idx + 4 + attr_len]);
+        this->attr[index].val = uvector();
+        for(int i = idx + 4 + attr_len - 1; i >= idx + 4; i--)
+            this->attr[index].val.push_back(buf[i]);
         this->attr[index].set = true;
         idx += (4 + attr_len);
     }
@@ -50,7 +52,7 @@ short StunMsg::attrTypeToIndex(STUN_ATTR_TYPE type) {
             return 5;
         case STUN_ATTR_TYPE::STUN_ATTR_TYPE_PASSWD:
             return 6;
-        case STUN_ATTR_TYPE::STUN_ATTR_TYPE_MSG_INTEGRITY:
+        case STUN_ATTR_TYPE::STUN_ATTR_TYPE_XOR_MAPPED_ADDRESS:
             return 7;
         case STUN_ATTR_TYPE::STUN_ATTR_TYPE_ERROR_CODE:
             return 8;
@@ -62,7 +64,7 @@ short StunMsg::attrTypeToIndex(STUN_ATTR_TYPE type) {
             return 11;
         case STUN_ATTR_TYPE::STUN_ATTR_TYPE_NONCE:
             return 12;
-        case STUN_ATTR_TYPE::STUN_ATTR_TYPE_XOR_MAPPED_ADDRESS:
+        case STUN_ATTR_TYPE::STUN_ATTR_TYPE_MSG_INTEGRITY:
             return 13;
     }
     return -1;
@@ -77,13 +79,13 @@ STUN_ATTR_TYPE StunMsg::indexToAttrType(short index) {
         STUN_ATTR_TYPE::STUN_ATTR_TYPE_CHANGED_ADDR,
         STUN_ATTR_TYPE::STUN_ATTR_TYPE_USERNAME,
         STUN_ATTR_TYPE::STUN_ATTR_TYPE_PASSWD,
-        STUN_ATTR_TYPE::STUN_ATTR_TYPE_MSG_INTEGRITY,
+        STUN_ATTR_TYPE::STUN_ATTR_TYPE_XOR_MAPPED_ADDRESS,
         STUN_ATTR_TYPE::STUN_ATTR_TYPE_ERROR_CODE,
         STUN_ATTR_TYPE::STUN_ATTR_TYPE_UNKNOWN,
         STUN_ATTR_TYPE::STUN_ATTR_TYPE_REFLECTED_FROM,
         STUN_ATTR_TYPE::STUN_ATTR_TYPE_REALM,
         STUN_ATTR_TYPE::STUN_ATTR_TYPE_NONCE,
-        STUN_ATTR_TYPE::STUN_ATTR_TYPE_XOR_MAPPED_ADDRESS
+        STUN_ATTR_TYPE::STUN_ATTR_TYPE_MSG_INTEGRITY
     };
     return list[index];
 }
@@ -122,7 +124,7 @@ uvector StunMsg::getAttr(STUN_ATTR_TYPE type) {
     return this->attr[index].set ? this->attr[index].val : uvector();
 }
 
-uvector StunMsg::toPacket() {
+uvector StunMsg::toPacket(bool msg_integrity, bool finger_print) {
     int size = this->size();
     unsigned char buf[size];
     *(short *)(&buf[0]) = htons((short)this->type);
@@ -142,5 +144,28 @@ uvector StunMsg::toPacket() {
         idx += (4 + this->attr[i].val.size());
     }
 
+    if(msg_integrity) {
+        uvector key = {0x02, 0x01, 0x01, 0x02};
+        uvector before_sha = uvector(buf, buf + size);
+        uvector after_sha;
+        Crypto::SHA1Encrypt(key, before_sha, after_sha);
+        this->setAttr(STUN_ATTR_TYPE::STUN_ATTR_TYPE_MSG_INTEGRITY, after_sha);
+        uvector result = this->toPacket(false, false);
+        this->unsetAttr(STUN_ATTR_TYPE::STUN_ATTR_TYPE_MSG_INTEGRITY);
+        return result;
+    }
+
     return uvector(buf, buf + size);
+}
+
+void StunMsg::dump(bool msg_integrity, bool finger_print) {
+    uvector buf = this->toPacket(msg_integrity, finger_print);
+    int size = buf.size();
+    short cnt = 0;
+    for(int i = 0; i < size; i++) {
+        printf("%02X ", (unsigned char)buf[i]);
+        if(cnt == 3) printf("\n");
+        cnt = (cnt + 1) % 4;
+    }
+    printf("\n");
 }

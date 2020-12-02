@@ -4,12 +4,12 @@ LIB_DIR	=	include
 BIN_DIR	=	bin
 TARGET	=	main
 
-CFLAGS	=	-I$(LIB_DIR)
+CFLAGS	=	-I$(LIB_DIR) -lssl -lcrypto
 SRC		=	$(wildcard $(SRC_DIR)/*.cpp)
 OBJ		=	$(SRC:%.cpp=%.o)
 
 $(TARGET): $(OBJ) $(TARGET).o
-	$(CC) -o $@ $@.o $(CFLAGS) $(OBJ)
+	$(CC) -o $@ $@.o $(OBJ) $(CFLAGS)
 
 $(TARGET).o: $(TARGET).cpp
 	$(CC) -c -o $@ $< $(CFLAGS)

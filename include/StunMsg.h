@@ -7,7 +7,8 @@
 #include <stdlib.h>
 #include <string>
 #include <string.h>
-#include <vector>
+#include <Type.h>
+#include <Crypto.h>
 
 enum class STUN_MSG_TYPE {
     STUN_MSG_TYPE_BINDING_REQ=0x0001,
@@ -28,17 +29,15 @@ enum class STUN_ATTR_TYPE {
 	STUN_ATTR_TYPE_CHANGED_ADDR=0x0005,
 	STUN_ATTR_TYPE_USERNAME=0x0006,
 	STUN_ATTR_TYPE_PASSWD=0x0007,
-	STUN_ATTR_TYPE_MSG_INTEGRITY=0x0008,
 	STUN_ATTR_TYPE_ERROR_CODE=0x0009,
 	STUN_ATTR_TYPE_UNKNOWN=0x000A,
 	STUN_ATTR_TYPE_REFLECTED_FROM=0x000B,
     STUN_ATTR_TYPE_REALM=0x0014,
     STUN_ATTR_TYPE_NONCE=0x0015,
     STUN_ATTR_TYPE_XOR_MAPPED_ADDRESS=0x0020,
+	STUN_ATTR_TYPE_MSG_INTEGRITY=0x0008,
     SIZE=14
 };
-
-typedef std::vector<unsigned char> uvector;
 
 class StunMsg {
     private:
@@ -75,7 +74,9 @@ class StunMsg {
 
         uvector getAttr(STUN_ATTR_TYPE);
 
-        uvector toPacket();
+        uvector toPacket(bool, bool);
+
+        void dump(bool, bool);
 };
 
 #endif
