@@ -106,15 +106,15 @@ void StunUtils::dumpBuffer(uvector &buf, short size) {
     printf("\n");
 }
 
-std::string StunUtils::translateXORAddress(uvector &buf, short &port) {
+std::string StunUtils::translateXORAddress(uvector &buf, unsigned short &port) {
     // need fix
     std::stringstream ss;
     ss << (buf[4]^0x21) << '.' << (buf[5]^0x12) << '.' << (buf[6]^0xA4) << '.' << (buf[7]^0x42);
-    port = ntohs(*(short *)&buf[2]);
+    port = ntohs(*(unsigned short *)&buf[2]);
     return ss.str();
 }
 
-std::string StunUtils::translateAddress(uvector &buf, short &port) {
+std::string StunUtils::translateAddress(uvector &buf, unsigned short &port) {
     std::stringstream ss;
     ss << (unsigned short)buf[4] << '.' << (unsigned short)buf[5] << '.' << (unsigned short)buf[6] << '.' << (unsigned short)buf[7];
     port = buf[3] << 4 | buf[2];
@@ -144,10 +144,13 @@ int StunUtils::detectNAT(std::string stun_server_host, short stun_server_port, s
 
     StunMsg response(buf);
     std::string global_ip_same_ip_port;
-    short global_port_same_ip_port;
+    unsigned short global_port_same_ip_port;
 	if(response.getType() == STUN_MSG_TYPE::STUN_MSG_TYPE_BINDING_RES) {
         if(response.getAttr(STUN_ATTR_TYPE::STUN_ATTR_TYPE_XOR_MAPPED_ADDRESS).size() != 0) {
 		    uvector xor_ip = response.getAttr(STUN_ATTR_TYPE::STUN_ATTR_TYPE_XOR_MAPPED_ADDRESS);
+		    global_ip_same_ip_port = StunUtils::translateXORAddress(xor_ip, global_port_same_ip_port);
+        } else if(response.getAttr(STUN_ATTR_TYPE::STUN_ATTR_TYPE_XOR_MAPPED_ADDRESS_ALTER).size() != 0) {
+            uvector xor_ip = response.getAttr(STUN_ATTR_TYPE::STUN_ATTR_TYPE_XOR_MAPPED_ADDRESS_ALTER);
 		    global_ip_same_ip_port = StunUtils::translateXORAddress(xor_ip, global_port_same_ip_port);
         } else {
             uvector ip = response.getAttr(STUN_ATTR_TYPE::STUN_ATTR_TYPE_MAPPED_ADDR);
@@ -182,7 +185,7 @@ int StunUtils::detectNAT(std::string stun_server_host, short stun_server_port, s
     response.parseBuffer(buf);
     if(response.getType() == STUN_MSG_TYPE::STUN_MSG_TYPE_BINDING_RES) {
 		uvector xor_ip = response.getAttr(STUN_ATTR_TYPE::STUN_ATTR_TYPE_XOR_MAPPED_ADDRESS);
-        short port;
+        unsigned short port;
 		if(global_ip_same_ip_port != StunUtils::translateXORAddress(xor_ip, port) && port == global_port_same_ip_port) {
             // Symmetric NAT
             return 0x0004;

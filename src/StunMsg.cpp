@@ -54,22 +54,24 @@ short StunMsg::attrTypeToIndex(STUN_ATTR_TYPE type) {
             return 6;
         case STUN_ATTR_TYPE::STUN_ATTR_TYPE_XOR_MAPPED_ADDRESS:
             return 7;
-        case STUN_ATTR_TYPE::STUN_ATTR_TYPE_XOR_ONLY:
+        case STUN_ATTR_TYPE::STUN_ATTR_TYPE_XOR_MAPPED_ADDRESS_ALTER:
             return 8;
-        case STUN_ATTR_TYPE::STUN_ATTR_TYPE_SERVER:
+        case STUN_ATTR_TYPE::STUN_ATTR_TYPE_XOR_ONLY:
             return 9;
-        case STUN_ATTR_TYPE::STUN_ATTR_TYPE_ERROR_CODE:
+        case STUN_ATTR_TYPE::STUN_ATTR_TYPE_SERVER:
             return 10;
-        case STUN_ATTR_TYPE::STUN_ATTR_TYPE_UNKNOWN:
+        case STUN_ATTR_TYPE::STUN_ATTR_TYPE_ERROR_CODE:
             return 11;
-        case STUN_ATTR_TYPE::STUN_ATTR_TYPE_REFLECTED_FROM:
+        case STUN_ATTR_TYPE::STUN_ATTR_TYPE_UNKNOWN:
             return 12;
-        case STUN_ATTR_TYPE::STUN_ATTR_TYPE_REALM:
+        case STUN_ATTR_TYPE::STUN_ATTR_TYPE_REFLECTED_FROM:
             return 13;
-        case STUN_ATTR_TYPE::STUN_ATTR_TYPE_NONCE:
+        case STUN_ATTR_TYPE::STUN_ATTR_TYPE_REALM:
             return 14;
-        case STUN_ATTR_TYPE::STUN_ATTR_TYPE_MSG_INTEGRITY:
+        case STUN_ATTR_TYPE::STUN_ATTR_TYPE_NONCE:
             return 15;
+        case STUN_ATTR_TYPE::STUN_ATTR_TYPE_MSG_INTEGRITY:
+            return 16;
     }
     throw;
     return -1;
@@ -85,6 +87,7 @@ STUN_ATTR_TYPE StunMsg::indexToAttrType(short index) {
         STUN_ATTR_TYPE::STUN_ATTR_TYPE_USERNAME,
         STUN_ATTR_TYPE::STUN_ATTR_TYPE_PASSWD,
         STUN_ATTR_TYPE::STUN_ATTR_TYPE_XOR_MAPPED_ADDRESS,
+        STUN_ATTR_TYPE::STUN_ATTR_TYPE_XOR_MAPPED_ADDRESS_ALTER,
         STUN_ATTR_TYPE::STUN_ATTR_TYPE_XOR_ONLY,
         STUN_ATTR_TYPE::STUN_ATTR_TYPE_SERVER,
         STUN_ATTR_TYPE::STUN_ATTR_TYPE_ERROR_CODE,

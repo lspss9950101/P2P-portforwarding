@@ -28,18 +28,51 @@ int P2PConnection::connectP2P(bool is_server, std::string peer_ip, short peer_po
 		return 0x0004;
 	}
 
+
+
     unsigned char upacket[8] = {0x01, 0x02, 0x03, 0x00};
 	
-	if(sendto(sockfd, upacket, 8, 0, (struct sockaddr *)&peer_addr, sizeof(peer_addr)) < 0) {
-		std::cerr << "<Error>\tSending failed" << std::endl;
+    timeval timeout = {2, 0};
+    if(setsockopt(sockfd, SOL_SOCKET, SO_RCVTIMEO, (const char *)&timeout, sizeof(timeout)) != 0) {
+        std::cerr << "<Error>\tCannot set timeout" << std::endl;
         close(sockfd);
-		return 0x0008;
-	}
+        return 0x0020;
+    }
+    while(1) {
+	    if(sendto(sockfd, upacket, 8, 0, (struct sockaddr *)&peer_addr, sizeof(peer_addr)) < 0) {
+		    std::cerr << "<Error>\tSending failed" << std::endl;
+            close(sockfd);
+		    return 0x0008;
+	    }
+        char buf[1024];
+        if(recvfrom(sockfd, buf, 1024, 0, NULL, NULL) < 0) {
+		    std::cerr << "Not connected" << std::endl;
+            continue;
+	    }
+        if(sendto(sockfd, upacket, 8, 0, (struct sockaddr *)&peer_addr, sizeof(peer_addr)) < 0) {
+		    std::cerr << "<Error>\tSending failed" << std::endl;
+            close(sockfd);
+		    return 0x0008;
+	    }
+        std::cout << "OK" << std::endl;
+        break;
+    }
 
+
+    timeout = {0, 0};
+    if(setsockopt(sockfd, SOL_SOCKET, SO_RCVTIMEO, (const char *)&timeout, sizeof(timeout)) != 0) {
+        std::cerr << "<Error>\tCannot set timeout" << std::endl;
+        close(sockfd);
+        return 0x0020;
+    }
     if(is_server) {
         char buf[1024];
         while(1) {
-            recvfrom(sockfd, buf, 1024, 0, NULL, NULL);
+            if(recvfrom(sockfd, buf, 1024, 0, NULL, NULL) < 0) {
+		        std::cerr << "<Error>\tReceiving failed" << std::endl;
+                close(sockfd);
+		        return 0x0010;
+	        }
             printf("Get %s\n", buf);
         }
     } else {

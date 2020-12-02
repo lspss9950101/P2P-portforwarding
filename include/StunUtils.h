@@ -29,9 +29,9 @@ namespace StunUtils {
 
     void dumpBuffer(uvector&, short);
 
-    std::string translateXORAddress(uvector&, short&);
+    std::string translateXORAddress(uvector&, unsigned short&);
 
-    std::string translateAddress(uvector&, short&);
+    std::string translateAddress(uvector&, unsigned short&);
 
     int detectNAT(std::string, short, short, std::string*, short*);
 
