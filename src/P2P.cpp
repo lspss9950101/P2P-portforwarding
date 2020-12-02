@@ -62,7 +62,16 @@ int P2PConnection::connectP2P(bool is_server, std::string peer_ip, short peer_po
             printf("Get %s\n", buf);
         }
     } else {
-        if(connect(sockfd, (sockaddr *)&peer_addr, sizeof(sockaddr)) < 0) return 0x0001;
+        int trial = 5;
+        while(1) {
+            if(connect(sockfd, (sockaddr *)&peer_addr, sizeof(sockaddr)) < 0) {
+                std::cerr << "<Error>\tConnection failed" << std::endl;
+                trial --;
+                if(!trial) return 0x0001;
+                continue;
+            }
+            break;
+        }
         while(1) {
             char buf[1024];
             scanf("%s", buf);
@@ -71,4 +80,6 @@ int P2PConnection::connectP2P(bool is_server, std::string peer_ip, short peer_po
     }
 
     close(sockfd);
+
+    return 0;
 }
