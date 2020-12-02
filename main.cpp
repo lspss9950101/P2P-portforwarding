@@ -18,10 +18,8 @@ int main(int argc, char **argv) {
 		int type = StunUtils::detectNAT(STUN_1_HOST, STUN_1_PORT, atoi(argv[2]), NULL, NULL);
 		std::cout << "Network Environment: " << StunUtils::translateNATType(type) << std::endl;
 	} else if(!strncmp(argv[1], "server", 6)) {
-		int type = StunUtils::detectNAT(STUN_1_HOST, STUN_1_PORT, 2222, NULL, NULL);
 		P2PConnection::connectP2P(true, argv[2], atoi(argv[3]), 2222);
 	} else if(!strncmp(argv[1], "client", 6)) {
-		int type = StunUtils::detectNAT(STUN_1_HOST, STUN_1_PORT, 2223, NULL, NULL);
 		P2PConnection::connectP2P(false, argv[2], atoi(argv[3]), 2223);
 	} else {
 		std::cout << "./main SUBCMD" << std::endl

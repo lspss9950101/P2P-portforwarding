@@ -28,41 +28,25 @@ int P2PConnection::connectP2P(bool is_server, std::string peer_ip, short peer_po
 		return 0x0004;
 	}
 
-    unsigned char upacket[1];
+    unsigned char upacket[8] = {0x01, 0x02, 0x03, 0x00};
 	
-	if(sendto(sockfd, upacket, 1, 0, (struct sockaddr *)&peer_addr, sizeof(peer_addr)) < 0) {
+	if(sendto(sockfd, upacket, 8, 0, (struct sockaddr *)&peer_addr, sizeof(peer_addr)) < 0) {
 		std::cerr << "<Error>\tSending failed" << std::endl;
         close(sockfd);
 		return 0x0008;
 	}
 
-    close(sockfd);
-
-    if((sockfd = socket(AF_INET, SOCK_DGRAM, 0)) < 0) {
-        std::cerr << "<Error>\tSocket creation failed" << std::endl;
-        return 0x0001;
-    }
-
     if(is_server) {
-        if(bind(sockfd, (struct sockaddr *)&local_addr, sizeof(local_addr)) < 0) {
-		    std::cerr << "<Error>\tBinding failed" << std::endl;
-            close(sockfd);
-		    return 0x0004;
-	    }
-
-        sockaddr_in client;
-        int addr_len = sizeof(sockaddr);
-        int clientfd;
         char buf[1024];
         while(1) {
             recvfrom(sockfd, buf, 1024, 0, NULL, NULL);
             printf("Get %s\n", buf);
         }
     } else {
+        char buf[1024];
         while(1) {
-            char buf[1024];
             scanf("%s", buf);
-            if(sendto(sockfd, buf, strlen(buf), 0, (struct sockaddr *)&peer_addr, sizeof(peer_addr)) < 0) {
+            if(sendto(sockfd, buf, strlen(buf)+1, 0, (struct sockaddr *)&peer_addr, sizeof(peer_addr)) < 0) {
 		        std::cerr << "<Error>\tSending failed" << std::endl;
                 close(sockfd);
 		        return 0x0008;
