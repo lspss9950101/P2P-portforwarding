@@ -34,7 +34,7 @@ int StunUtils::sendStunPacket(std::string stun_server_ip, short stun_server_port
         return 0x0001;
     }
 
-    timeval timeout = {1, 500};
+    timeval timeout = {3, 0};
     if(setsockopt(sockfd, SOL_SOCKET, SO_RCVTIMEO, (const char *)&timeout, sizeof(timeout)) != 0) {
         std::cerr << "<Error>\tCannot set timeout" << std::endl;
         close(sockfd);
@@ -79,8 +79,8 @@ int StunUtils::sendStunPacket(std::string stun_server_ip, short stun_server_port
 	}
 
 	close(sockfd);
-
-    buf = uvector(char_buf, char_buf + 1024);
+    unsigned short size = (unsigned short)char_buf[2] << 8 | char_buf[3];
+    buf = uvector(char_buf, char_buf + size + 20);
     return 0x0000;
 }
 
@@ -106,13 +106,14 @@ void StunUtils::dumpBuffer(uvector &buf, short size) {
     printf("\n");
 }
 
-std::string StunUtils::translateXORAddress(uvector &buf) {
+std::string StunUtils::translateXORAddress(uvector &buf, short &port) {
     std::stringstream ss;
-    ss << (buf[3]^0x21) << '.' << (buf[2]^0x12) << '.' << (buf[1]^0xA4) << '.' << (buf[0]^0x42) << ':' << ((*(short *)&buf[5])^0x2112);
+    ss << (buf[3]^0x21) << '.' << (buf[2]^0x12) << '.' << (buf[1]^0xA4) << '.' << (buf[0]^0x42);
+    port = ((*(short *)&buf[5])^0x2112);
     return ss.str();
 }
 
-int StunUtils::detectNAT(std::string stun_server_host, short stun_server_port, short local_port) {
+int StunUtils::detectNAT(std::string stun_server_host, short stun_server_port, short local_port, std::string *global_ip, short *global_port) {
     std::string stun_server_ip;
 	StunUtils::getAddrFromHost(stun_server_host, stun_server_ip);
 
@@ -125,39 +126,50 @@ int StunUtils::detectNAT(std::string stun_server_host, short stun_server_port, s
     uvector finger_print = {0x53, 0x54, 0x55, 0x4e};
 
 	StunMsg msg(STUN_MSG_TYPE::STUN_MSG_TYPE_BINDING_REQ, transaction_id);
-    msg.setAttr(STUN_ATTR_TYPE::STUN_ATTR_TYPE_CHANGE_REQ, change_req_flags);
 
     // Test 1
     uvector buf;
-	if(StunUtils::sendStunPacket(stun_server_ip, stun_server_port, local_port, msg, buf) == 0x0010) {
+	if(StunUtils::sendStunPacket(stun_server_ip, stun_server_port, local_port, msg, buf) != 0x0000) {
         // UDP blocked
         return 0x0001;
     }
 
     StunMsg response(buf);
     std::string global_ip_same_ip_port;
+    short global_port_same_ip_port;
 	if(response.getType() == STUN_MSG_TYPE::STUN_MSG_TYPE_BINDING_RES) {
 		uvector xor_ip = response.getAttr(STUN_ATTR_TYPE::STUN_ATTR_TYPE_XOR_MAPPED_ADDRESS);
-		global_ip_same_ip_port = StunUtils::translateXORAddress(xor_ip);
-        std::cout << "Global IP Port: " << global_ip_same_ip_port << std::endl;
+		global_ip_same_ip_port = StunUtils::translateXORAddress(xor_ip, global_port_same_ip_port);
+        std::cout << "Global IP Port: " << global_ip_same_ip_port << ':' << global_port_same_ip_port << std::endl;
 	}
 
     // TODO: check link ip and global ip
+    std::vector<std::string> local_ip_list = StunUtils::getIpList();
+    bool same_public_local = std::find(local_ip_list.begin(), local_ip_list.end(), global_ip_same_ip_port) != local_ip_list.end();
 
     // Test 2
     
     change_req_flags = {0x06, 0x00, 0x00, 0x00};
     msg.setAttr(STUN_ATTR_TYPE::STUN_ATTR_TYPE_CHANGE_REQ, change_req_flags);
     if(StunUtils::sendStunPacket(stun_server_ip, stun_server_port, local_port, msg, buf) == 0x0000) {
-        response.parseBuffer(buf);
+        if(same_public_local) {
+            // Open Internet
+            return 0x0020;
+        }
         // Full Cone NAT
         return 0x0002;
+    }
+
+    if(same_public_local) {
+        // Symmetric Firewall
+        return 0x0040;
     }
 
     response.parseBuffer(buf);
     if(response.getType() == STUN_MSG_TYPE::STUN_MSG_TYPE_BINDING_RES) {
 		uvector xor_ip = response.getAttr(STUN_ATTR_TYPE::STUN_ATTR_TYPE_XOR_MAPPED_ADDRESS);
-		if(global_ip_same_ip_port != StunUtils::translateXORAddress(xor_ip)) {
+        short port;
+		if(global_ip_same_ip_port != StunUtils::translateXORAddress(xor_ip, port) && port == global_port_same_ip_port) {
             // Symmetric NAT
             return 0x0004;
         }
@@ -187,6 +199,29 @@ std::string StunUtils::translateNATType(int type) {
             return "Restricted NAT";
         case 0x0010:
             return "Port Restricted NAT";
+        case 0x0020:
+            return "Open Internet";
+        case 0x0040:
+            return "Symmetric Firewall";
     }
     return "Unknown type";
+}
+
+std::vector<std::string> StunUtils::getIpList() {
+    ifaddrs *ifaddr;
+    if(getifaddrs(&ifaddr) == -1) {
+        return std::vector<std::string>();
+    }
+
+    char host[NI_MAXHOST];
+    int family;
+    std::vector<std::string> result;
+    for(ifaddrs *ifa = ifaddr; ifa != NULL; ifa = ifa->ifa_next) {
+        family = ifa->ifa_addr->sa_family;
+        if(family == AF_INET || family == AF_INET6) {
+            getnameinfo(ifa->ifa_addr, (family == AF_INET ? sizeof(sockaddr_in) : sizeof(sockaddr_in6)), host, NI_MAXHOST, NULL, 0, NI_NUMERICHOST);
+            result.push_back(host);
+        }
+    }
+    return result;
 }

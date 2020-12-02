@@ -24,7 +24,7 @@ void StunMsg::parseBuffer(uvector &buf) {
     short msg_len = ntohs(*(short *)&buf[2]);
     memcpy(this->transaction_id, &buf[8], 12);
     for(short idx = 20; idx < msg_len + 20;) {
-        short attr_type = ntohs(*(short *)&buf[idx]);
+        STUN_ATTR_TYPE attr_type = (STUN_ATTR_TYPE)ntohs(*(short *)&buf[idx]);
         short attr_len = ntohs(*(short *)&buf[idx+2]);
 
         int index = StunMsg::attrTypeToIndex((STUN_ATTR_TYPE)attr_type);
@@ -32,7 +32,7 @@ void StunMsg::parseBuffer(uvector &buf) {
         for(int i = idx + 4 + attr_len - 1; i >= idx + 4; i--)
             this->attr[index].val.push_back(buf[i]);
         this->attr[index].set = true;
-        idx += (4 + attr_len);
+        idx += (4 + attr_len);    
     }
 }
 
@@ -54,19 +54,24 @@ short StunMsg::attrTypeToIndex(STUN_ATTR_TYPE type) {
             return 6;
         case STUN_ATTR_TYPE::STUN_ATTR_TYPE_XOR_MAPPED_ADDRESS:
             return 7;
-        case STUN_ATTR_TYPE::STUN_ATTR_TYPE_ERROR_CODE:
+        case STUN_ATTR_TYPE::STUN_ATTR_TYPE_XOR_ONLY:
             return 8;
-        case STUN_ATTR_TYPE::STUN_ATTR_TYPE_UNKNOWN:
+        case STUN_ATTR_TYPE::STUN_ATTR_TYPE_SERVER:
             return 9;
-        case STUN_ATTR_TYPE::STUN_ATTR_TYPE_REFLECTED_FROM:
+        case STUN_ATTR_TYPE::STUN_ATTR_TYPE_ERROR_CODE:
             return 10;
-        case STUN_ATTR_TYPE::STUN_ATTR_TYPE_REALM:
+        case STUN_ATTR_TYPE::STUN_ATTR_TYPE_UNKNOWN:
             return 11;
-        case STUN_ATTR_TYPE::STUN_ATTR_TYPE_NONCE:
+        case STUN_ATTR_TYPE::STUN_ATTR_TYPE_REFLECTED_FROM:
             return 12;
-        case STUN_ATTR_TYPE::STUN_ATTR_TYPE_MSG_INTEGRITY:
+        case STUN_ATTR_TYPE::STUN_ATTR_TYPE_REALM:
             return 13;
+        case STUN_ATTR_TYPE::STUN_ATTR_TYPE_NONCE:
+            return 14;
+        case STUN_ATTR_TYPE::STUN_ATTR_TYPE_MSG_INTEGRITY:
+            return 15;
     }
+    throw;
     return -1;
 }
 
@@ -80,6 +85,8 @@ STUN_ATTR_TYPE StunMsg::indexToAttrType(short index) {
         STUN_ATTR_TYPE::STUN_ATTR_TYPE_USERNAME,
         STUN_ATTR_TYPE::STUN_ATTR_TYPE_PASSWD,
         STUN_ATTR_TYPE::STUN_ATTR_TYPE_XOR_MAPPED_ADDRESS,
+        STUN_ATTR_TYPE::STUN_ATTR_TYPE_XOR_ONLY,
+        STUN_ATTR_TYPE::STUN_ATTR_TYPE_SERVER,
         STUN_ATTR_TYPE::STUN_ATTR_TYPE_ERROR_CODE,
         STUN_ATTR_TYPE::STUN_ATTR_TYPE_UNKNOWN,
         STUN_ATTR_TYPE::STUN_ATTR_TYPE_REFLECTED_FROM,

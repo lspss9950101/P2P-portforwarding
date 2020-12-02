@@ -8,6 +8,7 @@
 #include <netinet/in.h>
 #include <unistd.h>
 #include <netdb.h>
+#include <ifaddrs.h>
 
 #include <Type.h>
 #include <iostream>
@@ -17,6 +18,7 @@
 #include <stdlib.h>
 #include <string>
 #include <string.h>
+#include <vector>
 
 namespace StunUtils {
     int getAddrFromHost(std::string, std::string&);
@@ -27,10 +29,12 @@ namespace StunUtils {
 
     void dumpBuffer(uvector&, short);
 
-    std::string translateXORAddress(uvector&);
+    std::string translateXORAddress(uvector&, short&);
 
-    int detectNAT(std::string, short, short);
+    int detectNAT(std::string, short, short, std::string*, short*);
 
     std::string translateNATType(int);
+
+    std::vector<std::string> getIpList();
 };
 #endif
