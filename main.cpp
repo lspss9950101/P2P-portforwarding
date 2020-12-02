@@ -20,7 +20,7 @@ int main(int argc, char **argv) {
 	} else if(!strncmp(argv[1], "server", 6)) {
 		P2PConnection::connectP2P(true, argv[2], atoi(argv[3]), 2222);
 	} else if(!strncmp(argv[1], "client", 6)) {
-		P2PConnection::connectP2P(false, argv[2], atoi(argv[3]), 2222);
+		P2PConnection::connectP2P(false, argv[2], atoi(argv[3]), 2223);
 	} else {
 		std::cout << "./main SUBCMD" << std::endl
 			<< "----------------------" << std::endl
