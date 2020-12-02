@@ -28,9 +28,9 @@ void StunMsg::parseBuffer(uvector &buf) {
         short attr_len = ntohs(*(short *)&buf[idx+2]);
 
         int index = StunMsg::attrTypeToIndex((STUN_ATTR_TYPE)attr_type);
-        this->attr[index].val = uvector();
-        for(int i = idx + 4 + attr_len - 1; i >= idx + 4; i--)
-            this->attr[index].val.push_back(buf[i]);
+        this->attr[index].val = uvector(&buf[idx+4], &buf[idx+4+attr_len]);
+        /*for(int i = idx + 4 + attr_len - 1; i >= idx + 4; i--)
+            this->attr[index].val.push_back(buf[i]);*/
         this->attr[index].set = true;
         idx += (4 + attr_len);    
     }

@@ -31,6 +31,8 @@ namespace StunUtils {
 
     std::string translateXORAddress(uvector&, short&);
 
+    std::string translateAddress(uvector&, short&);
+
     int detectNAT(std::string, short, short, std::string*, short*);
 
     std::string translateNATType(int);
