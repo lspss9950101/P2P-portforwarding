@@ -34,6 +34,13 @@ int StunUtils::sendStunPacket(std::string stun_server_ip, short stun_server_port
         return 0x0001;
     }
 
+    timeval timeout = {1, 500};
+    if(setsockopt(sockfd, SOL_SOCKET, SO_RCVTIMEO, (const char *)&timeout, sizeof(timeout)) != 0) {
+        std::cerr << "<Error>\tCannot set timeout" << std::endl;
+        close(sockfd);
+        return 0x0020;
+    }
+
     bzero(&serv_addr, sizeof(serv_addr));
 	serv_addr.sin_family = AF_INET;
 	if(inet_pton(AF_INET, stun_server_ip.c_str(), &serv_addr.sin_addr) < 0) {
@@ -62,19 +69,14 @@ int StunUtils::sendStunPacket(std::string stun_server_ip, short stun_server_port
         close(sockfd);
 		return 0x0008;
 	}
-	
-	sleep(1);
 
     unsigned char char_buf[1024];
 
-    sockaddr_in src_addr;
-    int addr_len = sizeof(sockaddr_in);
-	if(recvfrom(sockfd, char_buf, 1024, 0, (sockaddr *)&src_addr, (socklen_t *)&addr_len) < 0) {
+	if(recvfrom(sockfd, char_buf, 1024, 0, NULL, NULL) < 0) {
 		std::cerr << "<Error>\tReceiving failed" << std::endl;
         close(sockfd);
 		return 0x0010;
 	}
-    printf("%d\n", ntohs(src_addr.sin_port));
 
 	close(sockfd);
 
@@ -110,10 +112,9 @@ std::string StunUtils::translateXORAddress(uvector &buf) {
     return ss.str();
 }
 
-int StunUtils::detectNAT(std::string stun_server1_host, short stun_server1_port, std::string stun_server2_host, short stun_server2_port, short local_port) {
-    std::string stun_server1_ip, stun_server2_ip;
-	StunUtils::getAddrFromHost(stun_server1_host, stun_server1_ip);
-	StunUtils::getAddrFromHost(stun_server2_host, stun_server2_ip);
+int StunUtils::detectNAT(std::string stun_server_host, short stun_server_port, short local_port) {
+    std::string stun_server_ip;
+	StunUtils::getAddrFromHost(stun_server_host, stun_server_ip);
 
 	unsigned char transaction_id[12];
 	*(int *)(&transaction_id[0]) = 0x63c7117e;
@@ -128,7 +129,7 @@ int StunUtils::detectNAT(std::string stun_server1_host, short stun_server1_port,
 
     // Test 1
     uvector buf;
-	if(StunUtils::sendStunPacket(stun_server1_ip, stun_server1_port, local_port, msg, buf) == 0x0010) {
+	if(StunUtils::sendStunPacket(stun_server_ip, stun_server_port, local_port, msg, buf) == 0x0010) {
         // UDP blocked
         return 0x0001;
     }
@@ -145,9 +146,9 @@ int StunUtils::detectNAT(std::string stun_server1_host, short stun_server1_port,
 
     // Test 2
     
-    change_req_flags = {0xFF, 0xFF, 0xFF, 0xFF};
+    change_req_flags = {0x06, 0x00, 0x00, 0x00};
     msg.setAttr(STUN_ATTR_TYPE::STUN_ATTR_TYPE_CHANGE_REQ, change_req_flags);
-    if(StunUtils::sendStunPacket(stun_server2_ip, stun_server2_port, local_port, msg, buf) == 0x0000) {
+    if(StunUtils::sendStunPacket(stun_server_ip, stun_server_port, local_port, msg, buf) == 0x0000) {
         response.parseBuffer(buf);
         // Full Cone NAT
         return 0x0002;
@@ -163,9 +164,9 @@ int StunUtils::detectNAT(std::string stun_server1_host, short stun_server1_port,
 	}
 
     // Test 3
-    change_req_flags[0] = 0x02;
+    change_req_flags = {0x02, 0x00, 0x00, 0x00};
     msg.setAttr(STUN_ATTR_TYPE::STUN_ATTR_TYPE_CHANGE_REQ, change_req_flags);
-    if(StunUtils::sendStunPacket(stun_server1_ip, stun_server1_port, local_port, msg, buf) == 0x0000) {
+    if(StunUtils::sendStunPacket(stun_server_ip, stun_server_port, local_port, msg, buf) == 0x0000) {
         // Restricted NAT
         return 0x0008;
     }
