@@ -110,14 +110,14 @@ std::string StunUtils::translateXORAddress(uvector &buf, unsigned short &port) {
     // need fix
     std::stringstream ss;
     ss << (buf[4]^0x21) << '.' << (buf[5]^0x12) << '.' << (buf[6]^0xA4) << '.' << (buf[7]^0x42);
-    port = ntohs(*(unsigned short *)&buf[2]);
+    port = ntohs(*(short*)&buf[2]) ^ 0x2112;
     return ss.str();
 }
 
 std::string StunUtils::translateAddress(uvector &buf, unsigned short &port) {
     std::stringstream ss;
     ss << (unsigned short)buf[4] << '.' << (unsigned short)buf[5] << '.' << (unsigned short)buf[6] << '.' << (unsigned short)buf[7];
-    port = buf[3] << 4 | buf[2];
+    port = ntohs(*(short*)&buf[2]);
     return ss.str();
 }
 
@@ -157,6 +157,9 @@ int StunUtils::detectNAT(std::string stun_server_host, short stun_server_port, s
             global_ip_same_ip_port = StunUtils::translateAddress(ip, global_port_same_ip_port);
         }
 
+        std::cout << "Global IP Port: " << global_ip_same_ip_port << ':' << global_port_same_ip_port << std::endl;
+        uvector ip = response.getAttr(STUN_ATTR_TYPE::STUN_ATTR_TYPE_MAPPED_ADDR);
+        global_ip_same_ip_port = StunUtils::translateAddress(ip, global_port_same_ip_port);
         std::cout << "Global IP Port: " << global_ip_same_ip_port << ':' << global_port_same_ip_port << std::endl;
 	}
 
