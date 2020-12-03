@@ -185,11 +185,14 @@ int StunUtils::detectNAT(std::string stun_server_host, short stun_server_port, s
         return 0x0040;
     }
 
+    msg.unsetAttr(STUN_ATTR_TYPE::STUN_ATTR_TYPE_CHANGE_REQ);
+    StunUtils::sendStunPacket(stun_server_ip, stun_server_port, local_port, msg, buf);
+
     response.parseBuffer(buf);
     if(response.getType() == STUN_MSG_TYPE::STUN_MSG_TYPE_BINDING_RES) {
 		uvector xor_ip = response.getAttr(STUN_ATTR_TYPE::STUN_ATTR_TYPE_XOR_MAPPED_ADDRESS);
         unsigned short port;
-		if(global_ip_same_ip_port != StunUtils::translateXORAddress(xor_ip, port) && port == global_port_same_ip_port) {
+		if(global_ip_same_ip_port != StunUtils::translateXORAddress(xor_ip, port) || port != global_port_same_ip_port) {
             // Symmetric NAT
             return 0x0004;
         }
