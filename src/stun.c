@@ -103,11 +103,10 @@ void* _stun_test_worker(void *args_in) {
     worker_args *args = args_in;
     unsigned char buf[256];
 
-    worker_ret ret;
-    if((ret.rv = sendSTUNPacket(args->addr, args->change_addr, args->change_port, args->local_port, args->connection_try_limit, buf, sizeof(buf))) != 0)
-        pthread_exit((void*)&ret);
-    ret.rv |= (getGlobalIPAddr(buf, &ret.addr) << 16);
-    pthread_exit((void*)&ret);
+    if((args->ret.rv = sendSTUNPacket(args->addr, args->change_addr, args->change_port, args->local_port, args->connection_try_limit, buf, sizeof(buf))) != 0)
+        pthread_exit((void*)&args->ret);
+    args->ret.rv |= (getGlobalIPAddr(buf, &args->ret.addr) << 16);
+    pthread_exit(NULL);
 }
 
 // ret
@@ -154,7 +153,6 @@ int examineNetworkEnvironment(ip_address *addr1, ip_address *addr2, unsigned sho
     // Test 1
     pthread_t worker_test1, worker_test2, worker_test3;
     worker_args args[3];
-    worker_ret *ret;
     unsigned short random_port = local_port;
     args[0].addr = addr1;
     args[0].change_addr = args[0].change_port = false;
@@ -177,9 +175,9 @@ int examineNetworkEnvironment(ip_address *addr1, ip_address *addr2, unsigned sho
     args[2].local_port = random_port;
     pthread_create(&worker_test3, NULL, _stun_test_worker, &args[2]);
 
-    pthread_join(worker_test1, (void**)&ret);
-    printVerbose(1, &args[0], ret);
-    if(ret->rv & 0xFFFF) {
+    pthread_join(worker_test1, NULL);
+    printVerbose(1, &args[0], &args[0].ret);
+    if(args[0].ret.rv & 0xFFFF) {
         // UDP blocked
         pthread_cancel(worker_test2);
         pthread_cancel(worker_test3);
@@ -187,20 +185,20 @@ int examineNetworkEnvironment(ip_address *addr1, ip_address *addr2, unsigned sho
     }
 
     // Resp error
-    if(ret->rv & 0xFFFF0000) {
+    if(args[0].ret.rv & 0xFFFF0000) {
         pthread_cancel(worker_test2);
         pthread_cancel(worker_test3);
         return 1;
     }
 
-    memcpy(&global_ip_addr, &(ret->addr), sizeof(ip_address));
+    memcpy(&global_ip_addr, &(args[0].ret.addr), sizeof(ip_address));
     if(global_ip_addr_ret != NULL) memcpy(global_ip_addr_ret, &global_ip_addr, sizeof(ip_address));
 
-    if(isSameAsLinkIP(&(ret->addr))) {
+    if(isSameAsLinkIP(&(args[0].ret.addr))) {
         // No NAT
-        pthread_join(worker_test2, (void**)&ret);
-        printVerbose(2, &args[1], ret);
-        if(ret->rv & 0xFFFF) {
+        pthread_join(worker_test2, NULL);
+        printVerbose(2, &args[1], &args[1].ret);
+        if(args[1].ret.rv & 0xFFFF) {
             // Symmetric Firewall
             pthread_cancel(worker_test2);
             pthread_cancel(worker_test3);
@@ -213,26 +211,26 @@ int examineNetworkEnvironment(ip_address *addr1, ip_address *addr2, unsigned sho
         }
     } else {
         // NAT detected
-        pthread_join(worker_test2, (void**)&ret);
-        printVerbose(2, &args[1], ret);
-        if(ret->rv & 0xFFFF) {
+        pthread_join(worker_test2, NULL);
+        printVerbose(2, &args[1], &args[1].ret);
+        if(args[1].ret.rv & 0xFFFF) {
             args[0].addr = addr2;
             pthread_create(&worker_test1, NULL, _stun_test_worker, &args[0]);
-            pthread_join(worker_test1, (void**)&ret);
-            printVerbose(1, &args[0], ret);
-            if(ret->rv & 0xFFFF0000) {
+            pthread_join(worker_test1, NULL);
+            printVerbose(1, &args[0], &args[0].ret);
+            if(args[0].ret.rv & 0xFFFF0000) {
                 // Resp error
                 pthread_cancel(worker_test3);
                 return 1;
             }
-            if(strcmp(ret->addr.addr, global_ip_addr.addr) || ret->addr.port != global_ip_addr.port) {
+            if(strcmp(args[0].ret.addr.addr, global_ip_addr.addr) || args[0].ret.addr.port != global_ip_addr.port) {
                 // Symmetric NAT
                 pthread_cancel(worker_test3);
                 return 6;
             } else {
-                pthread_join(worker_test3, (void**)&ret);
-                printVerbose(3, &args[2], ret);
-                if(ret->rv & 0xFFFF) {
+                pthread_join(worker_test3, NULL);
+                printVerbose(3, &args[2], &args[2].ret);
+                if(args[2].ret.rv & 0xFFFF) {
                     // Restricted port NAT
                     return 7;
                 } else {

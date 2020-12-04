@@ -48,7 +48,7 @@ bool isSameAsLinkIP(ip_address *addr) {
     int family;
     for(struct ifaddrs *ifa = ifaddr; ifa != NULL; ifa = ifa->ifa_next) {
         family = ifa->ifa_addr->sa_family;
-        struct sockaddr_in *ifa_addr = ifa->ifa_addr;
+        struct sockaddr_in *ifa_addr = (struct sockaddr_in *)ifa->ifa_addr;
         if((family == addr->ip_family) && (tgt.sin_addr.s_addr == ifa_addr->sin_addr.s_addr)) {
             result = true;
             break;

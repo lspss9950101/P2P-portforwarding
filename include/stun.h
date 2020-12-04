@@ -12,16 +12,17 @@
 #include <pthread.h>
 
 typedef struct {
+    ip_address addr;
+    int rv;
+} worker_ret;
+
+typedef struct {
     ip_address *addr;
     unsigned short local_port;
     bool change_addr, change_port;
     short connection_try_limit;
+    worker_ret ret;
 } worker_args;
-
-typedef struct {
-    ip_address addr;
-    int rv;
-} worker_ret;
 
 int sendSTUNPacket(ip_address*, bool, bool, unsigned short, short, unsigned char *, short);
 
