@@ -4,6 +4,8 @@
 #include <constants.h>
 
 typedef char bool;
+#define true 1
+#define false 0
 
 typedef struct {
     char addr[MAX_IP_ADDR_STR_LEN];

@@ -4,7 +4,7 @@ LIB_DIR	=	include
 BIN_DIR	=	bin
 TARGET	=	main
 
-CFLAGS	=	-I$(LIB_DIR)
+CFLAGS	=	-I$(LIB_DIR) -lpthread
 SRC		=	$(wildcard $(SRC_DIR)/*.c)
 OBJ		=	$(SRC:%.c=%.o)
 
@@ -16,3 +16,6 @@ $(TARGET).o: $(TARGET).c
 
 $(SRC_DIR)/%.o: $(SRC_DIR)/%.c
 	$(CC) -c -o $@ $< $(CFLAGS)
+
+clean:
+	rm src/*.o 2> /dev/null
