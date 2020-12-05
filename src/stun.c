@@ -10,19 +10,12 @@
 // 6: receiving error
 // 7: buffer overflow
 int sendSTUNPacket(ip_address* addr, bool change_addr, bool change_port, unsigned short local_port, short connection_tried_limit, unsigned char *buf, short buf_size) {
-    struct sockaddr_in serv_addr, local_addr;
+    struct sockaddr_in serv_addr, local_addr, src_addr;
     int sockfd;
 
     if((sockfd = socket(addr->ip_family, SOCK_DGRAM, 0)) < 0) {
         fprintf(stderr, "<Error>\tSocket creation failed\n");
         return 1;
-    }
-
-    struct timeval timeout = {3, 0};
-    if(setsockopt(sockfd, SOL_SOCKET, SO_RCVTIMEO, (const char *)&timeout, sizeof(timeout)) < 0) {
-        fprintf(stderr, "<Error>\tTimeout setting error.\n");
-        close(sockfd);
-        return 2;
     }
 
     memset(&serv_addr, 0, sizeof(serv_addr));
@@ -44,6 +37,16 @@ int sendSTUNPacket(ip_address* addr, bool change_addr, bool change_port, unsigne
         close(sockfd);
         return 4;
     }
+
+    struct timeval timeout = {3, 0};
+    if(setsockopt(sockfd, SOL_SOCKET, SO_RCVTIMEO, (const char *)&timeout, sizeof(timeout)) < 0) {
+        fprintf(stderr, "<Error>\tTimeout setting error.\n");
+        close(sockfd);
+        return 2;
+    }
+
+    memset(&src_addr, 0, sizeof(src_addr));
+    socklen_t addr_len = sizeof(src_addr);
 
     unsigned short req_size = ((change_addr || change_port) ? 0x0008 : 0x0000) + 20;
     unsigned char binding_req[req_size];
@@ -71,11 +74,26 @@ int sendSTUNPacket(ip_address* addr, bool change_addr, bool change_port, unsigne
             return 5;
         }
 
-        if(recvfrom(sockfd, recv_buf, sizeof(recv_buf), 0, NULL, NULL) < 0) {
-            fprintf(stderr, "<Error>\tReceiving error.\n");
-            close(sockfd);
-            if(connection_tried == connection_tried-1) return 6;
+        sleep(0.5);
+
+        int rv;
+        if((rv = recvfrom(sockfd, recv_buf, sizeof(recv_buf), 0, (struct sockaddr *)&src_addr, &addr_len) < 0)) {
+            fprintf(stdlog2, "<Info>\tReceiving error. RET: %d -%d\n", rv, connection_tried);
+            if(connection_tried == connection_tried_limit-1) {
+                close(sockfd);
+                return 6;
+            }
+            continue;
         }
+
+        if((!change_addr && (src_addr.sin_addr.s_addr != serv_addr.sin_addr.s_addr)) || (!change_port && (src_addr.sin_port != serv_addr.sin_port))) {
+            char tmp[128];
+            inet_ntop(AF_INET, &src_addr.sin_addr, tmp, 128);
+            fprintf(stdlog2, "<Info>\tWrong packet From %s:%d\n", tmp, src_addr.sin_port);
+            continue;
+        }
+
+        break;
     }
 
     close(sockfd);
@@ -101,11 +119,13 @@ void dumpBuffer(unsigned char* buf, short len) {
 // BBBB: get
 void* _stun_test_worker(void *args_in) {
     worker_args *args = args_in;
-    unsigned char buf[256];
+    unsigned char buf[1024];
 
     if((args->ret.rv = sendSTUNPacket(args->addr, args->change_addr, args->change_port, args->local_port, args->connection_try_limit, buf, sizeof(buf))) != 0)
         pthread_exit((void*)&args->ret);
     args->ret.rv |= (getGlobalIPAddr(buf, &args->ret.addr) << 16);
+    if(args->ret.rv & 0xFFFF0000)
+        fprintf(stderr, "<Error>\tCannot get global ip.\n");
     pthread_exit(NULL);
 }
 
@@ -149,6 +169,7 @@ int examineNetworkEnvironment(ip_address *addr1, ip_address *addr2, unsigned sho
     if(checkPort(local_port)) return 0;
     
     ip_address global_ip_addr;
+    srand(time(NULL));
 
     // Test 1
     pthread_t worker_test1, worker_test2, worker_test3;
@@ -194,7 +215,7 @@ int examineNetworkEnvironment(ip_address *addr1, ip_address *addr2, unsigned sho
     memcpy(&global_ip_addr, &(args[0].ret.addr), sizeof(ip_address));
     if(global_ip_addr_ret != NULL) memcpy(global_ip_addr_ret, &global_ip_addr, sizeof(ip_address));
 
-    if(isSameAsLinkIP(&(args[0].ret.addr))) {
+    if(isSameAsLinkIP(&global_ip_addr)) {
         // No NAT
         pthread_join(worker_test2, NULL);
         printVerbose(2, &args[1], &args[1].ret);
@@ -253,7 +274,9 @@ int examineNetworkEnvironment(ip_address *addr1, ip_address *addr2, unsigned sho
 // 1: response error
 // 2: no ip found
 int getGlobalIPAddr(unsigned char* buf, ip_address *addr) {
-    if(0x0101 != ntohs(*(unsigned short *)&buf[0])) return 1;
+    if(0x0101 != ntohs(*(unsigned short *)&buf[0])) {
+        return 1;
+    }
     
     bool found_ip = false;
     unsigned short msg_len = ntohs(*(unsigned short *)&buf[2]) + 20;
@@ -325,8 +348,8 @@ int translateNetworkType(int code, char* type) {
 }
 
 void printVerbose(int test_no, worker_args* args, worker_ret* ret) {
-    if(ret->rv & 0xFFFF)
-    fprintf(stderr, "=======================================================\n"
+    if(ret->rv)
+    fprintf(stdlog1, "=======================================================\n"
                     "Test %d Start\n"
                     "STUN Server Address: \t%s:%d\n"
                     "Local Port: \t\t%d\n"
@@ -337,7 +360,7 @@ void printVerbose(int test_no, worker_args* args, worker_ret* ret) {
                     test_no, args->addr->addr, args->addr->port, args->local_port, args->change_addr ? "True" : "False",
                     args->change_port ? "True" : "False");
     else
-    fprintf(stderr, "=======================================================\n"
+    fprintf(stdlog1, "=======================================================\n"
                     "Test %d Start\n"
                     "STUN Server Address: \t%s:%d\n"
                     "Local Port: \t\t%d\n"

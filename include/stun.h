@@ -6,10 +6,12 @@
 
 #include <string.h>
 #include <unistd.h>
-#include <pthread.h>
 #include <stdlib.h>
 #include <time.h>
 #include <pthread.h>
+
+extern FILE* stdlog1;
+extern FILE* stdlog2;
 
 typedef struct {
     ip_address addr;

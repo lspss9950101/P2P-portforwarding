@@ -12,6 +12,9 @@
 #include <netdb.h>
 #include <ifaddrs.h>
 
+extern FILE* stdlog1;
+extern FILE* stdlog2;
+
 int getIPFromHost(char*, int, ip_address*, int*);
 
 bool isSameAsLinkIP(ip_address*);

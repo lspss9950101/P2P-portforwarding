@@ -6,4 +6,8 @@
 #define DNS_QUERY_IPV6 0x02
 #define DNS_QUERY_RET_FIRST 0x04
 
+#define SUBCMD_DETECT 0
+#define SUBCMD_SERVER 1
+#define SUBCMD_CLIENT 2
+
 #endif
