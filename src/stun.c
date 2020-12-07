@@ -146,6 +146,7 @@ int checkPort(unsigned short port) {
     local_addr.sin_port = htons(port);
 
     if(bind(sockfd, (struct sockaddr *)&local_addr, sizeof(local_addr)) < 0) {
+        fprintf(stdlog2, "<Error>\tCannot bind socket\n");
         close(sockfd);
         return 2;
     }
@@ -166,7 +167,10 @@ int checkPort(unsigned short port) {
 // 7: Restricted port NAT
 // 8: Restricted NAT
 int examineNetworkEnvironment(ip_address *addr1, ip_address *addr2, unsigned short local_port, ip_address *global_ip_addr_ret) {
-    if(checkPort(local_port)) return 0;
+    if(checkPort(local_port)) {
+        fprintf(stdlog1, "<Error>\tPort in use\n");
+        return 0;
+    }
     
     ip_address global_ip_addr;
     srand(time(NULL));

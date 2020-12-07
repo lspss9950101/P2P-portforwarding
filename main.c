@@ -8,6 +8,8 @@
 FILE* stdlog1;
 FILE* stdlog2;
 
+void printUsage();
+
 int main(int argc, char **argv) {
     bool verbose1 = false, verbose2 = false, subcmd_set = false;
     int subcmd = SUBCMD_DETECT;
@@ -19,19 +21,34 @@ int main(int argc, char **argv) {
         } else if(!strcmp(argv[i], "-vv")) {
             verbose1 = verbose2 = true;
         } else if(!strcmp(argv[i], "-p")) {
-            if(i == argc-1) return -1;
+            if(i == argc-1) {
+                printUsage();
+                return -1;
+            }
             port = atoi(argv[i+1]);
             i++;
+        } else if(!strcmp(argv[i], "-h")) {
+            printUsage();
+            return 0;
         } else if(!strcmp(argv[i], "detect")) {
-            if(subcmd_set) return -1;
+            if(subcmd_set) {
+                printUsage();
+                return -1;
+            }
             subcmd_set = true;
             subcmd = SUBCMD_DETECT;
         } else if(!strcmp(argv[i], "server")) {
-            if(subcmd_set) return -1;
+            if(subcmd_set) {
+                printUsage();
+                return -1;
+            }
             subcmd_set = true;
             subcmd = SUBCMD_SERVER;
         } else if(!strcmp(argv[i], "client")) {
-            if(subcmd_set) return -1;
+            if(subcmd_set) {
+                printUsage();
+                return -1;
+            }
             subcmd_set = true;
             subcmd = SUBCMD_CLIENT;
         }
@@ -56,7 +73,9 @@ int main(int argc, char **argv) {
             char type[32];
             int type_code = examineNetworkEnvironment(&addr1, &addr2, port, &global_ip_addr);
             printf("\n\n");
-            if(type_code >= 3) {
+            if(type_code == 0) {
+                printf("Port in use\n");
+            } else if(type_code >= 3) {
                 printf("Global IP Addr: %s:%d\n", global_ip_addr.addr, global_ip_addr.port);
             }
             if(!translateNetworkType(type_code, type)) {
@@ -64,7 +83,24 @@ int main(int argc, char **argv) {
             }
             return 0;
         }
+        default:
+            printUsage();
     }
 
     return 0;
+}
+
+void printUsage() {
+    printf( "NAT tunnelling tool developed by tragicDilemma\n"
+            "Usage: ./main [OPTION] SUBCMD\n"
+            "\n"
+            "OPTION:\n"
+            "\t-p\t\tspecify port\n"
+            "\t-v\t\tlevel 1 verbose\n"
+            "\t-vv\t\tlevel 2 verbose\n"
+            "SUBCMD:\n"
+            "\tdetect\t\tdetect current internet environment\n"
+            "\tserver\t\topen a tunnelling server\n"
+            "\tclient\t\topen a tunnelling client\n"
+    );
 }
