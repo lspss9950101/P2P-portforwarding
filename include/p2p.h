@@ -13,6 +13,6 @@
 extern FILE* stdlog1;
 extern FILE* stdlog2;
 
-int UDPHolePunching(ip_address*, unsigned short, int);
+int startP2PServer(unsigned short port);
 
 #endif

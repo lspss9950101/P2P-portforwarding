@@ -129,32 +129,6 @@ void* _stun_test_worker(void *args_in) {
     pthread_exit(NULL);
 }
 
-// ret
-// 0: port ok
-// 1: socket creation failed
-// 2: port in use
-int checkPort(unsigned short port) {
-    struct sockaddr_in local_addr;
-    int sockfd;
-
-    if((sockfd = socket(AF_INET, SOCK_DGRAM, 0)) < 0) {
-        return 1;
-    }
-
-    memset(&local_addr, 0, sizeof(local_addr));
-    local_addr.sin_family = AF_INET;
-    local_addr.sin_port = htons(port);
-
-    if(bind(sockfd, (struct sockaddr *)&local_addr, sizeof(local_addr)) < 0) {
-        fprintf(stdlog2, "<Error>\tCannot bind socket\n");
-        close(sockfd);
-        return 2;
-    }
-
-    close(sockfd);
-    return 0;
-}
-
 // addr1 should support change address request
 // ret
 // 0: Port in use
