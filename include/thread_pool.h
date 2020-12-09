@@ -3,34 +3,38 @@
 #include <semaphore.h>
 #include <types.h>
 
-sem_t free_thread, mutex_sock;
-
 typedef enum {
     BINDING_REQUEST,
     BONDING_ECHO,
 } TaskType;
 
 typedef struct {
-    pthread_t **pool;
-    int pool_size;
-} thread_pool;
-
-typedef struct {
-    TaskType type;
-    union {
-        struct {
-            ip_address client_ip;
-            float timeout;
-            int retry_limit;
-        } binding_request_attr;
-        struct {
-            ip_address client_ip;
-        } binding_echo_attr;
-    };
+    char *buf;
+    ip_address client_ip;
 } Task;
 
-void createThreadPool(thread_pool*, int);
+struct TaskList {
+    Task *task;
+    TaskList *next, *prev;
+}
 
-void destroyThreadPool(thread_pool*);
+typedef struct {
+    pthread_t *pool;
+    int pool_size;
+    sem_t free_thread_count, task_count, mutex_task;
+    Task *task_list_front, *task_list_back;
+} thread_pool;
 
-int pushTask(thread_pool*, Task);
+void* _worker_func(void*);
+
+int createThreadPool(thread_pool*, int, void*(void*));
+
+bool isAvailable(thread_pool*);
+
+int destroyThreadPool(thread_pool*);
+
+void destroyTask(Task*);
+
+void pushBackTask(thread_pool*, Task*);
+
+Task* popFrontTask(thread_pool*);

@@ -13,7 +13,6 @@
 extern FILE* stdlog1;
 extern FILE* stdlog2;
 
-<<<<<<< HEAD
 //
 //   00            07              15              23               31
 //  |-----------------------------------------------------------------|
@@ -60,8 +59,5 @@ extern FILE* stdlog2;
 //
 
 int UDPHolePunching(ip_address*, unsigned short, int);
-=======
-int startP2PServer(unsigned short port);
->>>>>>> b47df0b036b97b646dda795573191f4078206bdb
 
 #endif
