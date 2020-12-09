@@ -4,6 +4,7 @@
 #include <stdlib.h>
 #include <constants.h>
 #include <stun.h>
+#include <p2p.h>
 
 FILE* stdlog1;
 FILE* stdlog2;
@@ -14,6 +15,7 @@ int main(int argc, char **argv) {
     bool verbose1 = false, verbose2 = false, subcmd_set = false;
     int subcmd = SUBCMD_DETECT;
     unsigned short port = 2222;
+    char peer_ip[MAX_IP_ADDR_STR_LEN];
 
     for(int i = 1; i < argc; i++) {
         if(!strcmp(argv[i], "-v")) {
@@ -44,13 +46,27 @@ int main(int argc, char **argv) {
             }
             subcmd_set = true;
             subcmd = SUBCMD_SERVER;
-        } else if(!strcmp(argv[i], "client")) {
+        } else if(!strcmp(argv[i], "connect")) {
+            if(subcmd_set) {
+                printUsage();
+                return -1;
+            }
+            strcpy(peer_ip, argv[i+1]);
+            i++;
+            subcmd_set = true;
+            subcmd = SUBCMD_CONNECT;
+        } else if(!strcmp(argv[i], "shutdown")) {
             if(subcmd_set) {
                 printUsage();
                 return -1;
             }
             subcmd_set = true;
-            subcmd = SUBCMD_CLIENT;
+            subcmd = SUBCMD_SHUTDOWN;
+        }
+        else {
+            if(!subcmd_set) {
+                subcmd = SUBCMD_UNKNOWN;
+            }
         }
     }
 
@@ -83,6 +99,27 @@ int main(int argc, char **argv) {
             }
             return 0;
         }
+        case SUBCMD_SERVER:
+        {
+            printf("Starting server on port: %hu\n", port);
+            int rv = startCentralService(port);
+            printf("Server shut down. RET: %d\n", rv);
+            return 0;
+        }
+        case SUBCMD_SHUTDOWN:
+        {
+            printf("Sending shut down request.\n");
+            sendImmediateCommand(MSG_SHUT_DOWN, port, NULL);
+            return 0;
+        }
+        case SUBCMD_CONNECT:
+        {
+            printf("Sending local echo request.\n");
+            ip_address arg;
+            strcpy(arg.addr, peer_ip);
+            sendImmediateCommand(MSG_LOCAL_BIND, port, &arg);
+            return 0;
+        }
         default:
             printUsage();
     }
@@ -102,5 +139,6 @@ void printUsage() {
             "\tdetect\t\tdetect current internet environment\n"
             "\tserver\t\topen a tunnelling server\n"
             "\tclient\t\topen a tunnelling client\n"
+            "\tshutdown\tsend shutdown request\n"
     );
 }

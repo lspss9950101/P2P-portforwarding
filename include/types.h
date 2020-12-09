@@ -9,6 +9,7 @@ typedef char bool;
 
 typedef struct {
     char addr[MAX_IP_ADDR_STR_LEN];
+    unsigned int ip;
     unsigned short port, ip_family;
 } ip_address;
 

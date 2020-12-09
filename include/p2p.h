@@ -3,12 +3,14 @@
 
 #include <types.h>
 
-#include <stdio.h>
-
+#include <string.h>
+#include <unistd.h>
 #include <stdio.h>
 #include <sys/time.h>
 #include <sys/socket.h>
 #include <netinet/in.h>
+#include <arpa/inet.h>
+#include <thread_pool.h>
 
 extern FILE* stdlog1;
 extern FILE* stdlog2;
@@ -35,8 +37,8 @@ extern FILE* stdlog2;
 //  |-----------------------------------------------------------------|
 //
 //  Message Type:
-//      0x0101:     Shut down server request. Both target IP and source IP must be 127.0.0.1.
-//      0x0102:     Local binding request. Both target IP and source IP must be 127.0.0.1.
+//      0x0101:     Shut down server request. Both target IP and source IP are ignored.
+//      0x0102:     Local binding request. Both target IP and source IP are ignored.
 //                  Message length should always be 4.
 //                  Data field should contain 4 bytes representing client's global IP.
 //                  After recieving, server should send binding request immediately.
@@ -58,6 +60,15 @@ extern FILE* stdlog2;
 //      0x0006:     IP allocation response.
 //
 
-int UDPHolePunching(ip_address*, unsigned short, int);
+typedef enum {
+    MSG_SHUT_DOWN=0x0101,
+    MSG_LOCAL_BIND=0x0102,
+    MSG_ACK=0x0001,
+    MSG_ECHO=0x0002,
+} MSG_TYPE;
+
+int startCentralService(unsigned short);
+
+int sendImmediateCommand(MSG_TYPE, unsigned short, void*);
 
 #endif
