@@ -32,8 +32,6 @@ void dumpBuffer(unsigned char*, short);
 
 void* _stun_test_worker(void *);
 
-int checkPort(unsigned short);
-
 int examineNetworkEnvironment(ip_address *, ip_address *, unsigned short, ip_address *);
 
 int getGlobalIPAddr(unsigned char*, ip_address*);

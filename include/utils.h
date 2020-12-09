@@ -11,6 +11,8 @@
 #include <netinet/in.h>
 #include <netdb.h>
 #include <ifaddrs.h>
+#include <string.h>
+#include <unistd.h>
 
 extern FILE* stdlog1;
 extern FILE* stdlog2;
@@ -18,5 +20,7 @@ extern FILE* stdlog2;
 int getIPFromHost(char*, int, ip_address*, int*);
 
 bool isSameAsLinkIP(ip_address*);
+
+int checkPort(unsigned short);
 
 #endif
