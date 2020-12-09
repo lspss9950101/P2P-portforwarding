@@ -4,7 +4,7 @@ LIB_DIR	=	include
 BIN_DIR	=	bin
 TARGET	=	main
 
-CFLAGS	=	-I$(LIB_DIR) -lpthread
+CFLAGS	=	-I$(LIB_DIR) -lpthread -Wall
 SRC		=	$(wildcard $(SRC_DIR)/*.c)
 OBJ		=	$(SRC:%.c=%.o)
 
