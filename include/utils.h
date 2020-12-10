@@ -23,4 +23,6 @@ bool isSameAsLinkIP(ip_address*);
 
 int checkPort(unsigned short);
 
+int sendPacket(int, ip_adress*, unsigned char*, int);
+
 #endif
