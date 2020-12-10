@@ -1,35 +1,26 @@
 #include <thread_pool.h>
 
 Task* popFrontTask(thread_pool* pool) {
-    if(pool->task_list_front == NULL) return NULL;
+    struct TaskList *popped = pool->task_list_front->next;
+    if(popped->task == NULL) return NULL;
     
-    Task *result = pool->task_list_front->task;
-    struct TaskList *unused = pool->task_list_front;
-    pool->task_list_front = pool->task_list_front->next;
-    free(unused);
-    if(pool->task_list_front != NULL) {
-        pool->task_list_front->prev = NULL;
-        if(pool->task_list_front->next != NULL)
-            pool->task_list_front->next->prev = pool->task_list_front;
-    } else pool->task_list_back = NULL;
+    popped->prev->next = popped->next;
+    popped->next->prev = popped->prev;
+
+    Task *result = popped->task;
+    free(popped);
 
     return result;
 }
 
 void pushBackTask(thread_pool* pool, Task* task) {
-    if(pool->task_list_back == NULL) {
-        struct TaskList *new_entry = malloc(sizeof(struct TaskList));
-        pool->task_list_front = pool->task_list_back = new_entry;
-        new_entry->prev = new_entry->next = NULL;
-        new_entry->task = task;
-    } else {
-        struct TaskList *new_entry = malloc(sizeof(struct TaskList));
-        new_entry->prev = pool->task_list_back;
-        new_entry->next = NULL;
-        new_entry->task = task;
-        pool->task_list_back->next = new_entry;
-        pool->task_list_back = new_entry;
-    }
+    struct TaskList *new_entry = malloc(sizeof(struct TaskList));
+    new_entry->task = task;
+    new_entry->next = pool->task_list_back;
+    new_entry->prev = pool->task_list_back->prev;
+    pool->task_list_back->prev = new_entry;
+    pool->task_list_back->prev->next = new_entry;
+
     sem_post(&pool->task_count);
 }
 
@@ -41,20 +32,10 @@ void* _worker_func(void* args) {
         sem_wait(&pool->mutex_task);
         Task *task = popFrontTask(pool);
         sem_post(&pool->mutex_task);
-        if(task == NULL) continue;
+        if(task != NULL) {
 
-        unsigned short msg_type = ntohs(*(unsigned short *)&task->buf[12]);
-        unsigned short msg_length = ntohs(*(unsigned short *)&task->buf[14]);
-        switch(msg_type) {
-            case MSG_LOCAL_BIND:{
-                printf("Got local binding request.\n");
-                char packet[128];
-                
-                break;
-            }
+            destroyTask(task);
         }
-
-        destroyTask(task);
         sem_post(&pool->free_thread_count);
     }
 }
@@ -75,7 +56,12 @@ int createThreadPool(thread_pool* pool, int thread_number) {
     for(int i = 0; i < thread_number; i++)
         pthread_create(pool->pool + i, NULL, _worker_func, pool);
     
-    pool->task_list_front = pool->task_list_back = NULL;
+    pool->task_list_front = malloc(sizeof(struct TaskList));
+    pool->task_list_back = malloc(sizeof(struct TaskList));
+    pool->task_list_front->prev = pool->task_list_back->next = NULL;
+    pool->task_list_front->task = pool->task_list_back->task = NULL;
+    pool->task_list_front->next = pool->task_list_back;
+    pool->task_list_back->prev = pool->task_list_front;
     return 0;
 }
 
@@ -83,7 +69,7 @@ int destroyThreadPool(thread_pool* pool) {
     struct TaskList *cur = pool->task_list_front;
     while(cur != NULL) {
         struct TaskList *tmp = cur->next;
-        free(cur->task);
+        destroyTask(cur->task);
         free(cur);
         cur = tmp;
     }

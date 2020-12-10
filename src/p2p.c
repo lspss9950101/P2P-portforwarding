@@ -88,7 +88,7 @@ int sendImmediateCommand(MSG_TYPE msg_type, unsigned short port, void* args) {
         case MSG_SHUT_DOWN:
             packet_size = 20;
             break;
-        case MSG_LOCAL_BIND:{
+        case MSG_ACTIVE_BIND:{
             ip_address *peer_ip = args;
             *(unsigned short *)&packet[14] = htons(0x0004);
             inet_pton(AF_INET, peer_ip->addr, (unsigned int *)&packet[16]);
