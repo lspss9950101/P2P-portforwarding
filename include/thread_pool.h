@@ -2,41 +2,33 @@
 #define __THREAD_POOL_H__
 
 #include <pthread.h>
-#include <stdlib.h>
 #include <semaphore.h>
-#include <types.h>
-#include <p2p.h>
+#include <string.h>
+#include <queue>
 
-typedef struct {
-    int sockfd;
-    char *buf;
-    ip_address client_ip;
-} Task;
-
-struct TaskList {
-    Task *task;
-    struct TaskList *next, *prev;
+class Task {
+    public:
+        int sockfd;
+        int size;
+        char *buf;
+        Task(int sockfd, unsigned char *buf, int size);
+        ~Task();
 };
 
-typedef struct {
-    pthread_t *pool;
-    int pool_size;
-    sem_t free_thread_count, task_count, mutex_task;
-    struct TaskList *task_list_front, *task_list_back;
-} thread_pool;
+class ThreadPool {
+    private:
+        pthread_t *pool;
+        int size;
+        std::queue<Task*> task_queue;
+    public:
+        sem_t free_thread_count, task_count, mutex_task;
 
-void* _worker_func(void*);
-
-int createThreadPool(thread_pool*, int);
-
-bool isAvailable(thread_pool*);
-
-int destroyThreadPool(thread_pool*);
-
-void destroyTask(Task*);
-
-void pushBackTask(thread_pool*, Task*);
-
-Task* popFrontTask(thread_pool*);
+        ThreadPool(int size);
+        ~ThreadPool();
+        int init(void*(*worker_func)(void*));
+        bool isAvailable();
+        void pushTask(Task *new_task);
+        Task* popTask();
+};
 
 #endif

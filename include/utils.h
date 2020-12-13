@@ -4,25 +4,32 @@
 #define MIN(X,Y) ((X)<(Y)?(X):(Y))
 #define MAX(X,Y) ((X)>(Y)?(X):(Y))
 
-#include <stdio.h>
-#include <types.h>
 #include <constants.h>
+
+#include <stdio.h>
 #include <arpa/inet.h>
 #include <netinet/in.h>
 #include <netdb.h>
 #include <ifaddrs.h>
 #include <string.h>
 #include <unistd.h>
+#include <string>
 
 extern FILE* stdlog1;
 extern FILE* stdlog2;
 
-int getIPFromHost(char*, int, ip_address*, int*);
 
-bool isSameAsLinkIP(ip_address*);
+
+int initSocket(sockaddr_in* addr, timeval* timeout, int socktype, int protocol);
+
+int getIPFromHost(std::string, int, sockaddr_in*, int*);
+
+bool isSameAsLinkIP(sockaddr_in*);
 
 int checkPort(unsigned short);
 
-int sendPacket(int, ip_adress*, unsigned char*, int);
+int sendPacket(int, sockaddr_in*, unsigned char*, int);
+
+void dumpBuffer(unsigned char *buf, short buf_size);
 
 #endif

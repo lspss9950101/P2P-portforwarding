@@ -1,5 +1,3 @@
-#include <stun.h>
-
 // ret
 // 0: No error
 // 1: socket creation error
