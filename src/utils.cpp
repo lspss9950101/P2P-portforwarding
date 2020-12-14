@@ -8,7 +8,7 @@ int initSocket(sockaddr_in* addr, timeval* timeout, int socktype, int protocol) 
     }
 
     if(addr) {
-        if(bind(sockfd, (sockaddr *)addr, sizeof(sockaddr_in)) < 0) {
+        if(bind(sockfd, (sockaddr *)addr, sizeof(sockaddr)) < 0) {
             fprintf(stderr, "<Error>\tSocket binding error\n");
             close(sockfd);
             return -2;

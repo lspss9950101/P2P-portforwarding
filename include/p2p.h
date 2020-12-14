@@ -2,6 +2,7 @@
 #define __P2P_H__
 
 #include <utils.h>
+#include <uuid.h>
 #include <thread_pool.h>
 
 #include <string.h>
@@ -30,6 +31,10 @@ enum class MSG_TYPE {
     JOIN_RESP=0x0302,
     SET_IP_RESP=0X0303
 };
+
+void* service_worker_func(void *args);
+
+int sendP2PPacket(int sockfd, sockaddr_in *target_addr, MSG_TYPE msg_type, UUID source_uuid, UUID target_uuid, void *args);
 
 int startCentralService(unsigned short port, int thread_number);
 

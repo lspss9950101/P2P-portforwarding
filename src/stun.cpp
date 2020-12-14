@@ -5,11 +5,12 @@
 // -1: socket init error
 // -2: sending error
 // -3: recv timeout
+// -4: buffer overflows
 int sendSTUNPacket(struct sockaddr_in* stun_server, bool change_addr, bool change_port, unsigned short local_port, short connection_tried_limit, unsigned char *buf, short buf_size) {
     struct sockaddr_in local_addr, src_addr;
-    int addr_len = sizeof(struct sockaddr_in);
-    memset(&local_addr, 0, sizeof(struct sockaddr_in));
-    memset(&src_addr, 0, sizeof(struct sockaddr_in));
+    int addr_len = sizeof(sockaddr_in);
+    memset(&local_addr, 0, sizeof(sockaddr_in));
+    memset(&src_addr, 0, sizeof(sockaddr_in));
     local_addr.sin_family = AF_INET;
     local_addr.sin_port = htons(local_port);
     struct timeval timeout = {3, 0};
@@ -36,7 +37,7 @@ int sendSTUNPacket(struct sockaddr_in* stun_server, bool change_addr, bool chang
     unsigned char recv_buf[128];
     if(connection_tried_limit <= 0) connection_tried_limit = 5;
     for(int connection_tried = 0; connection_tried < connection_tried_limit; connection_tried++) {
-        if(sendto(sockfd, binding_req, req_size, 0, (struct sockaddr *)&stun_server, sizeof(sockaddr)) < 0) {
+        if(sendto(sockfd, binding_req, req_size, 0, (struct sockaddr *)stun_server, sizeof(sockaddr)) < 0) {
             fprintf(stderr, "<Error>\tSending failed\n");
             close(sockfd);
             return -2;
@@ -62,6 +63,12 @@ int sendSTUNPacket(struct sockaddr_in* stun_server, bool change_addr, bool chang
         }
         break;
     }
+    close(sockfd);
+
+    unsigned short msg_len = ntohs(*(unsigned short *)&recv_buf[2]) + 20;
+    if(msg_len > buf_size) return -4;
+    memcpy(buf, recv_buf, msg_len);
+    memset(buf + msg_len, 0, buf_size - msg_len);
     return 0;
 }
 

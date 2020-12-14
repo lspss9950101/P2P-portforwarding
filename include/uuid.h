@@ -7,7 +7,10 @@
 class UUID {
     private:
         unsigned long long high, low;
+        void clear();
     public:
+        static UUID zero();
+
         UUID();
         UUID(unsigned char *uuid);
         void random();

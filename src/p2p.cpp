@@ -1,5 +1,36 @@
 #include <p2p.h>
 
+// 0 : no error
+// -1: sending error
+int sendP2PPacket(int sockfd, sockaddr_in *target_addr, MSG_TYPE msg_type, UUID source_uuid, UUID target_uuid, void *args) {
+    unsigned char packet[1024];
+    unsigned short packet_size;
+    *(unsigned short *)&packet[0] = htons((unsigned short)msg_type);
+    source_uuid.toBytes(&packet[4]);
+    target_uuid.toBytes(&packet[20]);
+    
+    switch(msg_type) {
+        case MSG_TYPE::SHUT_DOWN:
+            packet_size = 36;
+            *(unsigned short *)&packet[2] = ntohs(0x0000);
+            break;
+        case MSG_TYPE::ACTIVE_BIND:
+        case MSG_TYPE::ECHO:
+            packet_size = 42;
+            *(unsigned short *)&packet[2] = ntohs(0x0006);
+            *(unsigned int *)&packet[36] = ((sockaddr_in *)args)->sin_addr.s_addr;
+            *(unsigned short *)&packet[40] = ((sockaddr_in *)args)->sin_port;
+            break;
+    }
+
+    if(sendto(sockfd, packet, packet_size, 0, (sockaddr *)target_addr, sizeof(sockaddr)) < 0) {
+        fprintf(stderr, "<Error>\tSending error\n");
+        return -1;
+    }
+    return 0;
+}
+
+
 void* service_worker_func(void *args) {
     ThreadPool *thread_pool = (ThreadPool *) args;
     MSG_TYPE msg_type;
@@ -17,9 +48,12 @@ void* service_worker_func(void *args) {
         msg_type = (MSG_TYPE)ntohs(*(unsigned short *)&task->buf[0]);
         msg_len = ntohs(*(unsigned short *)&task->buf[2]);
         switch(msg_type) {
-            case MSG_TYPE::ACTIVE_BIND:
-                printf("Bind request\n");
+            case MSG_TYPE::ACTIVE_BIND:{
+                fprintf(stdlog1, "<Info>Active bind request\n");
+                
                 break;
+            }
+            case MSG_TYPE::ECHO:
 
             default:
                 break;
@@ -30,10 +64,9 @@ void* service_worker_func(void *args) {
     }
 }
 
-// 0: no error
+// 0 : no error
 // -1: socket initialization failed
-// 3: thread pool creation error
-// 4: thread pool destruction error
+// -2: thread pool creation error
 int startCentralService(unsigned short port, int thread_number) {
     sockaddr_in local_addr, src_addr;
     memset(&local_addr, 0, sizeof(sockaddr_in));
@@ -95,31 +128,7 @@ int sendImmediateCommand(MSG_TYPE msg_type, unsigned short port, void* args) {
     int sockfd = initSocket(NULL, NULL, SOCK_DGRAM, 0);
     if(sockfd < 0) return -1;
 
-    unsigned char packet[60];
-    int packet_size;
-    memset(packet, 0, sizeof(packet));
-    *(unsigned short *)&packet[0] = htons((unsigned short)msg_type);
-
-    switch(msg_type) {
-        case MSG_TYPE::SHUT_DOWN:
-            packet_size = 40;
-            break;
-        case MSG_TYPE::ACTIVE_BIND:{
-            sockaddr_in *peer_addr = (sockaddr_in *)args;
-            *(unsigned short *)&packet[16] = htons(0x0004);
-            packet_size = 44;
-            break;
-        }
-        default:
-            close(sockfd);
-            return -2;
-    }
-
-    if(sendto(sockfd, packet, packet_size, 0, (struct sockaddr *)&target_addr, sizeof(target_addr)) < 0) {
-        fprintf(stderr, "<Error>\tSending failed\n");
-        close(sockfd);
-        return -3;
-    }
+    sendP2PPacket(sockfd, &target_addr, msg_type, UUID::zero(), UUID::zero(), args);
 
     close(sockfd);
     return 0;

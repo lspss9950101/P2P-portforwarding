@@ -9,6 +9,17 @@ UUID::UUID(unsigned char *uuid) {
     low = *(unsigned long long *)&uuid[8];
 }
 
+void UUID::clear() {
+    this->high = 0;
+    this->low = 0;
+}
+
+UUID UUID::zero() {
+    UUID uuid;
+    uuid.clear();
+    return uuid;
+}
+
 void UUID::random() {
     std::random_device rd;
     std::mt19937_64 gen(rd());
