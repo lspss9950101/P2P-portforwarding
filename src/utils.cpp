@@ -46,11 +46,13 @@ int getIPFromHost(std::string host, int query_type, sockaddr_in *addr, int *coun
 
     for(res = addr_info; res != NULL; res = res->ai_next) {
         if((query_type & 0x01) && res->ai_family == AF_INET) {
-            addr[len] = *(sockaddr_in *)res->ai_addr;
+            memset(addr + len, 0, sizeof(sockaddr));
+            addr[len].sin_addr.s_addr = ((sockaddr_in*)(res->ai_addr))->sin_addr.s_addr;
             addr[len].sin_family = AF_INET;
             len++;
         } else if((query_type & 0x02) && res->ai_family == AF_INET6) {
-            addr[len] = *(sockaddr_in *)res->ai_addr;
+            memset(addr + len, 0, sizeof(sockaddr_in));
+            memcpy(&((sockaddr_in6 *)&addr[len])->sin6_addr.__in6_u.__u6_addr8, &((sockaddr_in6*)(res->ai_addr))->sin6_addr.__in6_u.__u6_addr8, 16);
             addr[len].sin_family = AF_INET6;
             len++;
         }
