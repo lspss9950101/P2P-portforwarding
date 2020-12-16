@@ -42,6 +42,8 @@ int sendSTUNPacket(struct sockaddr_in* stun_server, bool change_addr, bool chang
 
 void* _stun_test_worker(void *raw_args);
 
+int getGlobalIp(struct sockaddr_in *stun_server, unsigned short port, struct sockaddr_in *global_ip);
+
 NetworkEnvironmentType examineNetworkEnvironment(struct sockaddr_in *stun_server1, struct sockaddr_in *stun_server2, unsigned short port, struct sockaddr_in *global_ip);
 
 int getGlobalIPAddr(unsigned char *packet_buf, struct sockaddr_in *global_ip);

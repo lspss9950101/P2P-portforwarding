@@ -16,6 +16,7 @@ int sendP2PPacket(int sockfd, sockaddr_in *target_addr, MSG_TYPE msg_type, UUID 
             break;
         case MSG_TYPE::ACTIVE_BIND:
         case MSG_TYPE::ECHO:
+        case MSG_TYPE::ACK:
             packet_size = 42;
             *(unsigned short *)&packet[2] = ntohs(0x0006);
             *(unsigned int *)&packet[36] = ((sockaddr_in *)args)->sin_addr.s_addr;
@@ -49,12 +50,38 @@ void* service_worker_func(void *args) {
         msg_len = ntohs(*(unsigned short *)&task->buf[2]);
         switch(msg_type) {
             case MSG_TYPE::ACTIVE_BIND:{
-                fprintf(stdlog1, "<Info>Active bind request\n");
-                
+                fprintf(stdlog1, "<Info>\tActive bind request\n");
+                sockaddr_in target;
+                memset(&target, 0, sizeof(sockaddr_in));
+                target.sin_family = AF_INET;
+                target.sin_addr.s_addr = *(unsigned int *)&task->buf[36];
+                target.sin_port = *(unsigned short *)&task->buf[40];
+                sendP2PPacket(task->sockfd, &target, MSG_TYPE::ECHO, self_profile.uuid, UUID::zero(), &self_profile.global_ip);
                 break;
             }
-            case MSG_TYPE::ECHO:
-
+            case MSG_TYPE::ECHO:{
+                fprintf(stdlog1, "<Info>\tEcho request\n");
+                sockaddr_in target;
+                memset(&target, 0, sizeof(sockaddr_in));
+                target.sin_family = AF_INET;
+                target.sin_addr.s_addr = *(unsigned int *)&task->buf[36];
+                target.sin_port = *(unsigned short *)&task->buf[40];
+                UUID target_uuid(&task->buf[4]);
+                self_profile.addIpMapping(target_uuid, target);
+                sendP2PPacket(task->sockfd, &target, MSG_TYPE::ACK, self_profile.uuid, target_uuid, &self_profile.global_ip);
+                break;
+            }
+            case MSG_TYPE::ACK:{
+                fprintf(stdlog1, "<Info>\tACKed\n");
+                sockaddr_in target;
+                memset(&target, 0, sizeof(sockaddr_in));
+                target.sin_family = AF_INET;
+                target.sin_addr.s_addr = *(unsigned int *)&task->buf[36];
+                target.sin_port = *(unsigned short *)&task->buf[40];
+                UUID target_uuid(&task->buf[4]);
+                self_profile.addIpMapping(target_uuid, target);
+                break;
+            }
             default:
                 break;
         }
@@ -89,10 +116,13 @@ int startCentralService(unsigned short port, int thread_number) {
     Task *new_task;
     while(true) {
         if((rv = recvfrom(sockfd, buf, sizeof(buf), 0, (sockaddr *)&src_addr, (socklen_t *)&addrlen)) < 0) {
-            fprintf(stdlog2, "<Error>\tReceiving error\n");
+            fprintf(stdlog2, "<Error>\tReceiving error %d\n", rv);
             continue;
         }
 
+        printP2PPacketDetail(buf, &src_addr);
+
+        printf("%04X", *(unsigned short *)buf);
         if(buf[1] == 0x01) {
             // Local request
             if(src_addr.sin_addr.s_addr != 0x0100007F) {
@@ -102,7 +132,7 @@ int startCentralService(unsigned short port, int thread_number) {
             msg_type = (MSG_TYPE)ntohs(*(unsigned short*)&buf[0]);
             if(msg_type == MSG_TYPE::SHUT_DOWN) {
                 // Shutdown request
-                fprintf(stdout, "<Info>\tReceived shutdown request\nShutting down server\n");
+                fprintf(stdout, "<Info>\tReceived shutdown request\n<Info>\tShutting down server\n");
                 break;
             }
         }
@@ -132,4 +162,22 @@ int sendImmediateCommand(MSG_TYPE msg_type, unsigned short port, void* args) {
 
     close(sockfd);
     return 0;
+}
+
+void printP2PPacketDetail(unsigned char *buf, sockaddr_in *addr) {
+    UUID source(&buf[4]);
+    UUID target(&buf[20]);
+    char source_uuid[42], target_uuid[42];
+    source.toString(source_uuid);
+    target.toString(target_uuid);
+    char ip[MAX_IP_ADDR_STR_LEN];
+    inet_ntop(AF_INET, &addr->sin_addr, ip, sizeof(sockaddr));
+
+    fprintf(stdlog1, "========================================\n");
+    fprintf(stdlog1, "Message Type: %04X\n", ntohs(*(unsigned short *)&buf[0]));
+    fprintf(stdlog1, "Message Length: %u\n", ntohs(*(unsigned short *)&buf[2]));
+    fprintf(stdlog1, "Source UUID: %s\n", source_uuid);
+    fprintf(stdlog1, "Target UUID: %s\n", target_uuid);
+    fprintf(stdlog1, "From: %s\n", ip);
+    fprintf(stdlog1, "========================================\n");
 }

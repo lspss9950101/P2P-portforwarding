@@ -10,25 +10,26 @@ class UUID {
         void clear();
     public:
         static UUID zero();
+        static UUID random();
 
         UUID();
         UUID(unsigned char *uuid);
-        void random();
         void toBytes(unsigned char *uuid);
+        void toString(char *buf);
         void print();
-        bool operator <(const UUID uuid) {
+        bool operator<(const UUID uuid) const {
             return (this->high < uuid.high) || (this->high == uuid.high && this->low < uuid.low);
         }
-        bool operator >(const UUID uuid) {
+        bool operator>(const UUID uuid) const {
             return (this->high > uuid.high) || (this->high == uuid.high && this->low > uuid.low);
         }
-        bool operator ==(const UUID uuid) {
+        bool operator==(const UUID uuid) const {
             return (this->high == uuid.high) && (this->low == uuid.low);
         }
-        bool operator <=(const UUID uuid) {
+        bool operator<=(const UUID uuid) const {
             return (*this < uuid) || (*this == uuid);
         }
-        bool operator >=(const UUID uuid) {
+        bool operator>=(const UUID uuid) const {
             return (*this > uuid) || (*this == uuid);
         }
 };

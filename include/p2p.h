@@ -4,6 +4,8 @@
 #include <utils.h>
 #include <uuid.h>
 #include <thread_pool.h>
+#include <profile.h>
+#include <constants.h>
 
 #include <string.h>
 #include <unistd.h>
@@ -15,6 +17,8 @@
 
 extern FILE* stdlog1;
 extern FILE* stdlog2;
+
+extern Profile self_profile;
 
 enum class MSG_TYPE {
     SHUT_DOWN=0x0101,
@@ -39,5 +43,7 @@ int sendP2PPacket(int sockfd, sockaddr_in *target_addr, MSG_TYPE msg_type, UUID 
 int startCentralService(unsigned short port, int thread_number);
 
 int sendImmediateCommand(MSG_TYPE, unsigned short, void*);
+
+void printP2PPacketDetail(unsigned char *buf, sockaddr_in *addr);
 
 #endif

@@ -5,12 +5,13 @@
 #include <semaphore.h>
 #include <string.h>
 #include <queue>
+#include <stdio.h>
 
 class Task {
     public:
         int sockfd;
         int size;
-        char *buf;
+        unsigned char *buf;
         Task(int sockfd, unsigned char *buf, int size);
         ~Task();
 };

@@ -1,5 +1,14 @@
 #include <stun.h>
 
+int getGlobalIp(struct sockaddr_in *stun_server, unsigned short port, struct sockaddr_in *global_ip) {
+    unsigned char buf[256];
+    int rv;
+    if((rv = sendSTUNPacket(stun_server, false, false, port, 5, buf, sizeof(buf))) < 0)
+        return rv;
+    if((rv = getGlobalIPAddr(buf, global_ip)) < 0)
+        return rv;
+}
+
 // ret
 // 0 : No error
 // -1: socket init error
@@ -208,19 +217,19 @@ int getGlobalIPAddr(unsigned char *packet_buf, struct sockaddr_in *global_ip) {
             found_ip = true;
             if(packet_buf[idx+5] == 0x01) {
                 ((struct sockaddr_in *)global_ip)->sin_family = AF_INET;
-                ((struct sockaddr_in *)global_ip)->sin_addr.s_addr = ntohl(*(unsigned int *)&packet_buf[idx+8]);
+                ((struct sockaddr_in *)global_ip)->sin_addr.s_addr = *(unsigned int *)&packet_buf[idx+8];
             } else {
                 ((struct sockaddr_in6 *)global_ip)->sin6_family = AF_INET6;
-                ((struct sockaddr_in6 *)global_ip)->sin6_addr.__in6_u.__u6_addr32[0] = ntohl(*(unsigned int *)&packet_buf[idx+20]);
-                ((struct sockaddr_in6 *)global_ip)->sin6_addr.__in6_u.__u6_addr32[1] = ntohl(*(unsigned int *)&packet_buf[idx+16]);
-                ((struct sockaddr_in6 *)global_ip)->sin6_addr.__in6_u.__u6_addr32[2] = ntohl(*(unsigned int *)&packet_buf[idx+12]);
-                ((struct sockaddr_in6 *)global_ip)->sin6_addr.__in6_u.__u6_addr32[3] = ntohl(*(unsigned int *)&packet_buf[idx+8]);
+                ((struct sockaddr_in6 *)global_ip)->sin6_addr.__in6_u.__u6_addr32[0] = *(unsigned int *)&packet_buf[idx+20];
+                ((struct sockaddr_in6 *)global_ip)->sin6_addr.__in6_u.__u6_addr32[1] = *(unsigned int *)&packet_buf[idx+16];
+                ((struct sockaddr_in6 *)global_ip)->sin6_addr.__in6_u.__u6_addr32[2] = *(unsigned int *)&packet_buf[idx+12];
+                ((struct sockaddr_in6 *)global_ip)->sin6_addr.__in6_u.__u6_addr32[3] = *(unsigned int *)&packet_buf[idx+8];
             }
-            ((struct sockaddr_in *)global_ip)->sin_port = ntohs(*(unsigned short*)&packet_buf[idx+6]);
+            ((struct sockaddr_in *)global_ip)->sin_port = *(unsigned short*)&packet_buf[idx+6];
         } else if(attr_type == 0x0020 || attr_type == 0x8020) {
             if(packet_buf[idx+5] == 0x01) {
                 ((struct sockaddr_in *)global_ip)->sin_family = AF_INET;
-                ((struct sockaddr_in *)global_ip)->sin_addr.s_addr = ntohl(*(unsigned int *)&packet_buf[idx+8]) ^ 0x2112A442;
+                ((struct sockaddr_in *)global_ip)->sin_addr.s_addr = *(unsigned int *)&packet_buf[idx+8] ^0x42A41221;
             } else {
                 ((struct sockaddr_in6 *)global_ip)->sin6_family = AF_INET6;
                 ((struct sockaddr_in6 *)global_ip)->sin6_addr.__in6_u.__u6_addr32[0] = ntohl(*(unsigned int *)&packet_buf[idx+20]) ^ 0x2112A442;
@@ -228,7 +237,7 @@ int getGlobalIPAddr(unsigned char *packet_buf, struct sockaddr_in *global_ip) {
                 ((struct sockaddr_in6 *)global_ip)->sin6_addr.__in6_u.__u6_addr32[2] = ntohl(*(unsigned int *)&packet_buf[idx+12]) ^ 0x0714278F;
                 ((struct sockaddr_in6 *)global_ip)->sin6_addr.__in6_u.__u6_addr32[3] = ntohl(*(unsigned int *)&packet_buf[idx+8]) ^ 0x5DED3221;
             }
-            ((struct sockaddr_in *)global_ip)->sin_port = ntohs(*(unsigned short*)&packet_buf[idx+6]) ^ 0x2112;
+            ((struct sockaddr_in *)global_ip)->sin_port = *(unsigned short*)&packet_buf[idx+6] ^ 0x1221;
             return 0;
         }
         idx += (4 + attr_len);

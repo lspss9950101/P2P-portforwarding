@@ -1,7 +1,7 @@
 #include <thread_pool.h>
 
 Task::Task(int sockfd, unsigned char *buf, int size) {
-    this->buf = new char[size];
+    this->buf = new unsigned char[size];
     this->size = size;
     this->sockfd = sockfd;
     memcpy(this->buf, buf, size);
