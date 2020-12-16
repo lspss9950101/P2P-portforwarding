@@ -14,9 +14,9 @@ class UUID {
 
         UUID();
         UUID(unsigned char *uuid);
-        void toBytes(unsigned char *uuid);
-        void toString(char *buf);
-        void print();
+        void toBytes(unsigned char *uuid) const;
+        void toString(char *buf) const;
+        void print() const;
         bool operator<(const UUID uuid) const {
             return (this->high < uuid.high) || (this->high == uuid.high && this->low < uuid.low);
         }

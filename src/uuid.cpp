@@ -46,12 +46,12 @@ UUID UUID::random() {
     return uuid;
 }
 
-void UUID::toBytes(unsigned char *uuid) {
+void UUID::toBytes(unsigned char *uuid) const {
     memcpy(uuid, &this->high, 8);
     memcpy(uuid+8, &this->low, 8);
 }
 
-void UUID::toString(char *buf) {
+void UUID::toString(char *buf) const {
     union parser {
         struct {
             unsigned short z1;
@@ -73,7 +73,7 @@ void UUID::toString(char *buf) {
         parsed_low->x2, parsed_low->y2, parsed_low->z2);
 }
 
-void UUID::print() {
+void UUID::print() const {
     union parser {
         struct {
             unsigned short z1;

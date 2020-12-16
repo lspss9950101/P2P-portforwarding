@@ -36,6 +36,8 @@ enum class MSG_TYPE {
     SET_IP_RESP=0X0303
 };
 
+void* routine_worker_func(void *args);
+
 void* service_worker_func(void *args);
 
 int sendP2PPacket(int sockfd, sockaddr_in *target_addr, MSG_TYPE msg_type, UUID source_uuid, UUID target_uuid, void *args);

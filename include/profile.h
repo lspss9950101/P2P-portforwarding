@@ -6,15 +6,33 @@
 #include <string.h>
 #include <unordered_map>
 #include <netinet/in.h>
+#include <pthread.h>
 #include <map>
+#include <unistd.h>
+
+extern FILE *stdlog1;
+extern FILE *stdlog2;
+
+struct mapping_entry {
+    sockaddr_in addr;
+    int connected;
+};
+
+void* routine_worker_func(void *args);
 
 class Profile {
     public:
         sockaddr_in global_ip;
         UUID uuid;
-        std::map<UUID, sockaddr_in> ip_mapping;
+        std::map<UUID, mapping_entry> ip_mapping;
+        pthread_t routine_thread;
+        int sockfd;
         
         Profile();
+
+        ~Profile();
+
+        void setSockfd(int sockfd);
 
         void setGlobalIp(sockaddr_in &addr);
 

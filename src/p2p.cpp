@@ -31,6 +31,23 @@ int sendP2PPacket(int sockfd, sockaddr_in *target_addr, MSG_TYPE msg_type, UUID 
     return 0;
 }
 
+void* routine_worker_func(void *args) {
+    Profile *profile = (Profile *)args;
+    char buf[256];
+
+    while(true) {
+        if(profile->sockfd > 0) {
+            for(std::map<UUID, mapping_entry>::iterator it = profile->ip_mapping.begin(); it != profile->ip_mapping.end(); it++) {
+                if(!it->second.connected) continue;
+                it->first.toString(buf);
+                fprintf(stdlog1, "Check alive: %s\n", buf);
+                sendP2PPacket(profile->sockfd, &it->second.addr, MSG_TYPE::ECHO, profile->uuid, it->first, &profile->global_ip);
+                it->second.connected--;
+            }
+        }
+        sleep(20000);
+    }
+}
 
 void* service_worker_func(void *args) {
     ThreadPool *thread_pool = (ThreadPool *) args;
@@ -101,6 +118,7 @@ int startCentralService(unsigned short port, int thread_number) {
     local_addr.sin_port = htons(port);
     int sockfd = initSocket(&local_addr, NULL, SOCK_DGRAM, 0);
     if(sockfd < 0) return -1;
+    self_profile.sockfd = sockfd;
 
     ThreadPool thread_pool(thread_number);
     if(thread_pool.init(service_worker_func) < 0) {
