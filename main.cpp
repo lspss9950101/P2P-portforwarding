@@ -76,6 +76,7 @@ int main(int argc, char **argv) {
             addr.sin_port = htons(19302);
             if(getGlobalIp(&addr, port, &self_profile.global_ip) < 0) return 0;
             printf("Starting server on port: %hu\n", port);
+            printf("Global IP: %s\n", getIpString(&self_profile.global_ip, true).c_str());
             int rv = startCentralService(port, 8);
             printf("Server shut down. RET: %d\n", rv);
             return 0;

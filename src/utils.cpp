@@ -108,3 +108,14 @@ void dumpBuffer(unsigned char* buf, short len) {
     }
     printf("\n");
 }
+
+std::string getIpString(sockaddr_in *addr, bool show_port) {
+    char buf[20];
+    inet_ntop(AF_INET, &addr->sin_addr, buf, sizeof(sockaddr));
+    std::string str(buf);
+    if(show_port) {
+        sprintf(buf, ":%d", ntohs(addr->sin_port));
+        str += std::string(buf);
+    }
+    return str;
+}

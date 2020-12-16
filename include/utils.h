@@ -32,4 +32,6 @@ int sendPacket(int, sockaddr_in*, unsigned char*, int);
 
 void dumpBuffer(unsigned char *buf, short buf_size);
 
+std::string getIpString(sockaddr_in *addr, bool show_port);
+
 #endif
